@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Create Connections Puzzle</title>
+    <script>
+      // Set theme immediately to prevent flash
+      (function () {
+        const theme = localStorage.getItem("connections-theme") || "light";
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div class="header-left">
+          <a href="index.html" class="header-btn">← Play</a>
+        </div>
+        <h1>Create Puzzle</h1>
+        <div class="header-right">
+          <button
+            id="theme-toggle"
+            class="theme-toggle"
+            aria-label="Toggle dark mode"
+          >
+            <span class="sun-icon">☀️</span>
+            <span class="moon-icon">🌙</span>
+          </button>
+        </div>
+      </header>
+
+      <main class="create-main">
+        <p class="instructions">
+          Create your own Connections puzzle! Fill in each category and its four
+          items.
+        </p>
+
+        <form id="puzzle-form">
+          <div class="puzzle-name-section">
+            <label for="puzzle-name">Puzzle Name</label>
+            <input
+              type="text"
+              id="puzzle-name"
+              class="puzzle-name-input"
+              placeholder="Give your puzzle a name (e.g., Movie Trivia)"
+              maxlength="50"
+            />
+          </div>
+
+          <div class="category-input yellow">
+            <div class="category-header">
+              <span class="difficulty-label">Easiest</span>
+              <div class="color-indicator yellow-bg"></div>
+            </div>
+            <input
+              type="text"
+              class="category-name"
+              placeholder="Category name (e.g., FRUITS)"
+              required
+            />
+            <div class="items-row">
+              <input
+                type="text"
+                class="item-input"
+                placeholder="Item 1"
+                required
+              />
+              <input
+                type="text"
+                class="item-input"
+                placeholder="Item 2"
+                required
+              />
+              <input
+                type="text"
+                class="item-input"
+                placeholder="Item 3"
+                required
+              />
+              <input
+                type="text"
+                class="item-input"
+                placeholder="Item 4"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="category-input green">
+            <div class="category-header">
+              <span class="difficulty-label">Easy</span>
+              <div class="color-indicator green-bg"></div>
+            </div>
+            <input
+              type="text"
+              class="category-name"
+              placeholder="Category name"
+              required
+            />
+            <div class="items-row">
+              <input
+                type="text"
+                class="item-input"
+                placeholder="Item 1"
+                required
+              />
+              <input
+                type="text"
+                class="item-input"
+                placeholder="Item 2"
+                required
+              />
+              <input
+                type="text"
+                class="item-input"
+                placeholder="Item 3"
+                required
+              />
+              <input
+                type="text"
+                class="item-input"
+                placeholder="Item 4"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="category-input blue">
+            <div class="category-header">
+              <span class="difficulty-label">Medium</span>
+              <div class="color-indicator blue-bg"></div>
+            </div>
+            <input
+              type="text"
+              class="category-name"
+              placeholder="Category name"
+              required
+            />
+            <div class="items-row">
+              <input
+                type="text"
+                class="item-input"
+                placeholder="Item 1"
+                required
+              />
+              <input
+                type="text"
+                class="item-input"
+                placeholder="Item 2"
+                required
+              />
+              <input
+                type="text"
+                class="item-input"
+                placeholder="Item 3"
+                required
+              />
+              <input
+                type="text"
+                class="item-input"
+                placeholder="Item 4"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="category-input purple">
+            <div class="category-header">
+              <span class="difficulty-label">Hardest</span>
+              <div class="color-indicator purple-bg"></div>
+            </div>
+            <input
+              type="text"
+              class="category-name"
+              placeholder="Category name"
+              required
+            />
+            <div class="items-row">
+              <input
+                type="text"
+                class="item-input"
+                placeholder="Item 1"
+                required
+              />
+              <input
+                type="text"
+                class="item-input"
+                placeholder="Item 2"
+                required
+              />
+              <input
+                type="text"
+                class="item-input"
+                placeholder="Item 3"
+                required
+              />
+              <input
+                type="text"
+                class="item-input"
+                placeholder="Item 4"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <label for="mistakes-select">Mistakes allowed:</label>
+            <select id="mistakes-select">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4" selected>4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
+              <option value="9">9</option>
+              <option value="10">10</option>
+              <option value="unlimited">Unlimited</option>
+            </select>
+          </div>
+
+          <div class="form-controls">
+            <button type="submit" class="control-btn submit-btn">
+              Generate Link
+            </button>
+            <button type="button" id="preview-btn" class="control-btn">
+              Preview
+            </button>
+            <button type="button" id="clear-btn" class="control-btn">
+              Clear All
+            </button>
+          </div>
+        </form>
+
+        <div id="share-section" class="share-section" style="display: none">
+          <h3>Share Your Puzzle</h3>
+          <div class="share-link-container">
+            <input type="text" id="share-link" readonly />
+            <button id="copy-btn" class="control-btn">Copy</button>
+          </div>
+          <p id="copy-message" class="copy-message"></p>
+        </div>
+
+        <div class="sample-link-container">
+          <a href="index.html" class="sample-puzzle-link">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+              />
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            Try the Sample Puzzle
+          </a>
+        </div>
+      </main>
+    </div>
+
+    <script src="create.js"></script>
+  </body>
+</html>

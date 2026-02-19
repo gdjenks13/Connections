@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Connections - Puzzle Game</title>
+    <script>
+      // Set theme immediately to prevent flash
+      (function () {
+        const theme = localStorage.getItem("connections-theme") || "light";
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div class="header-left">
+          <a href="create.html" class="header-btn">+ Create</a>
+        </div>
+        <h1>Connections</h1>
+        <div class="header-right">
+          <button
+            id="theme-toggle"
+            class="theme-toggle"
+            aria-label="Toggle dark mode"
+          >
+            <span class="sun-icon">☀️</span>
+            <span class="moon-icon">🌙</span>
+          </button>
+        </div>
+      </header>
+
+      <main>
+        <div
+          id="puzzle-name-display"
+          class="puzzle-name-display"
+          style="display: none"
+        ></div>
+
+        <div class="puzzle-selector">
+          <label for="puzzle-select">Choose a puzzle:</label>
+          <select id="puzzle-select">
+            <option value="">Select a puzzle...</option>
+          </select>
+        </div>
+
+        <p class="instructions">
+          Find groups of four items that share something in common.
+        </p>
+
+        <div id="solved-container" class="solved-container"></div>
+
+        <div id="game-grid" class="game-grid"></div>
+
+        <div class="mistakes-container">
+          <span>Mistakes remaining: </span>
+          <div id="mistakes-dots" class="mistakes-dots"></div>
+        </div>
+
+        <div class="controls">
+          <button id="shuffle-btn" class="control-btn">Shuffle</button>
+          <button id="deselect-btn" class="control-btn">Deselect All</button>
+          <button id="submit-btn" class="control-btn submit-btn" disabled>
+            Submit
+          </button>
+        </div>
+
+        <div id="message" class="message"></div>
+
+        <div id="share-results" class="share-results" style="display: none">
+          <h3>Share Your Results</h3>
+          <textarea id="share-text" readonly rows="6"></textarea>
+          <button id="copy-share-btn" class="control-btn">Copy Results</button>
+        </div>
+
+        <button id="new-game-btn" class="new-game-btn" style="display: none">
+          Play Again
+        </button>
+      </main>
+
+      <div id="modal" class="modal">
+        <div class="modal-content">
+          <h2 id="modal-title"></h2>
+          <p id="modal-message"></p>
+          <div id="modal-results"></div>
+          <button id="modal-close" class="control-btn">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
