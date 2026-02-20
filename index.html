@@ -1,152 +1,219 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Connections</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Connections</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;700;800&family=DM+Serif+Display&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  </head>
+  <body>
+    <!-- =================== HEADER =================== -->
+    <header>
+      <h1>Connections</h1>
+      <div class="header-btns">
+        <button class="btn small" id="how-to-btn">How to Play</button>
+        <button class="btn small primary" id="create-btn">Create</button>
+      </div>
+    </header>
 
-<!-- =================== HEADER =================== -->
-<header>
-  <h1>Connections</h1>
-  <div class="header-btns">
-    <button class="btn small" id="how-to-btn">How to Play</button>
-    <button class="btn small primary" id="create-btn">Create</button>
-  </div>
-</header>
+    <!-- =================== GAME SCREEN =================== -->
+    <div id="game-screen">
+      <div class="game-header">
+        <div class="game-title" id="game-category-hint">
+          Find four groups of four!
+        </div>
+        <div class="game-subtitle">Tap words to select, then press Submit.</div>
+      </div>
 
-<!-- =================== GAME SCREEN =================== -->
-<div id="game-screen">
-  <div class="game-header">
-    <div class="game-title" id="game-category-hint">Find four groups of four!</div>
-    <div class="game-subtitle">Tap words to select, then press Submit.</div>
-  </div>
+      <div class="solved-categories" id="solved-categories"></div>
 
-  <div class="solved-categories" id="solved-categories"></div>
+      <div class="grid" id="grid"></div>
 
-  <div class="grid" id="grid"></div>
+      <div class="mistakes-area" id="mistakes-area">
+        <span>Mistakes remaining:</span>
+        <div id="mistake-dots"></div>
+      </div>
 
-  <div class="mistakes-area" id="mistakes-area">
-    <span>Mistakes remaining:</span>
-    <div id="mistake-dots"></div>
-  </div>
-
-  <div class="game-actions">
-    <button class="btn small" id="shuffle-btn">Shuffle</button>
-    <button class="btn small" id="deselect-btn">Deselect All</button>
-    <button class="btn small primary" id="submit-btn">Submit</button>
-  </div>
-</div>
-
-<!-- =================== CREATOR SCREEN =================== -->
-<div id="creator-screen">
-  <div class="creator-header">
-    <div class="creator-title">Build Your Puzzle</div>
-    <div class="creator-subtitle">Choose categories &amp; words, then share the link.</div>
-  </div>
-
-  <!-- Category count + words per cat controls -->
-  <div class="creator-controls">
-    <div class="control-group">
-      <label>Number of Categories</label>
-      <div class="stepper">
-        <button class="stepper-btn" id="num-cats-dec">−</button>
-        <span class="stepper-val" id="num-cats-val">4</span>
-        <button class="stepper-btn" id="num-cats-inc">+</button>
-        <span style="font-size:12px;color:var(--text-muted)">(2–6)</span>
+      <div class="game-actions">
+        <button class="btn small" id="shuffle-btn">Shuffle</button>
+        <button class="btn small" id="deselect-btn">Deselect All</button>
+        <button class="btn small primary" id="submit-btn">Submit</button>
       </div>
     </div>
 
-    <div class="control-group">
-      <label>Words per Category</label>
-      <div class="stepper">
-        <button class="stepper-btn" id="words-per-cat-dec">−</button>
-        <span class="stepper-val" id="words-per-cat-val">4</span>
-        <button class="stepper-btn" id="words-per-cat-inc">+</button>
-        <span style="font-size:12px;color:var(--text-muted)">(2–6)</span>
+    <!-- =================== CREATOR SCREEN =================== -->
+    <div id="creator-screen">
+      <div class="creator-header">
+        <div class="creator-title">Build Your Puzzle</div>
+        <div class="creator-subtitle">
+          Choose categories &amp; words, then share the link.
+        </div>
+      </div>
+
+      <!-- Category count + words per cat controls -->
+      <div class="creator-controls">
+        <div class="control-group">
+          <label>Number of Categories</label>
+          <div class="stepper">
+            <button class="stepper-btn" id="num-cats-dec">−</button>
+            <span class="stepper-val" id="num-cats-val">4</span>
+            <button class="stepper-btn" id="num-cats-inc">+</button>
+            <span style="font-size: 12px; color: var(--text-muted)">(2–6)</span>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Words per Category</label>
+          <div class="stepper">
+            <button class="stepper-btn" id="words-per-cat-dec">−</button>
+            <span class="stepper-val" id="words-per-cat-val">4</span>
+            <button class="stepper-btn" id="words-per-cat-inc">+</button>
+            <span style="font-size: 12px; color: var(--text-muted)">(2–6)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dynamic category cards injected here by creator.js -->
+      <div id="creator-cards"></div>
+
+      <!-- Game settings -->
+      <div class="settings-card">
+        <label>Mistakes Allowed (0–10)</label>
+        <div class="slider-row">
+          <input type="range" id="mistake-slider" min="0" max="10" value="4" />
+          <span class="slider-val" id="mistake-slider-val">4</span>
+        </div>
+        <div class="settings-hint">
+          <strong>0</strong> = no mistakes allowed &nbsp;·&nbsp;
+          <strong>10</strong> = very forgiving
+        </div>
+      </div>
+
+      <div class="creator-actions">
+        <button class="btn" id="cancel-create-btn">Cancel</button>
+        <button class="btn primary" id="generate-btn">Generate Link</button>
+      </div>
+
+      <div class="share-result" id="share-result">
+        <strong style="font-size: 15px">Your puzzle link is ready! 🎉</strong>
+        <textarea class="share-url" id="share-url" readonly></textarea>
+        <div
+          style="
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+          "
+        >
+          <button class="btn primary small" id="copy-link-btn">
+            Copy Link
+          </button>
+          <button class="btn small" id="play-own-btn">Play It Now</button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Dynamic category cards injected here by creator.js -->
-  <div id="creator-cards"></div>
+    <!-- =================== HINT PICKER =================== -->
+    <!-- Swatches are injected dynamically by game.js -->
+    <div class="hint-picker" id="hint-picker"></div>
 
-  <!-- Game settings -->
-  <div class="settings-card">
-    <label>Mistakes Allowed (0–10)</label>
-    <div class="slider-row">
-      <input type="range" id="mistake-slider" min="0" max="10" value="4">
-      <span class="slider-val" id="mistake-slider-val">4</span>
+    <!-- =================== TOAST =================== -->
+    <div class="toast" id="toast"></div>
+
+    <!-- =================== MODALS =================== -->
+
+    <!-- How to Play -->
+    <div class="modal-overlay hidden" id="how-to-modal">
+      <div class="modal">
+        <h2>How to Play</h2>
+        <p>Find groups of words that share something in common.</p>
+        <ul
+          style="
+            text-align: left;
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.9;
+            padding-left: 20px;
+          "
+        >
+          <li>
+            Tap words to select a full group, then press
+            <strong>Submit</strong>.
+          </li>
+          <li>
+            Categories are color-coded by difficulty — Yellow is easiest, Purple
+            hardest. Custom puzzles may also include Red and Orange.
+          </li>
+          <li>Wrong guesses cost a mistake. Run out and the puzzle ends.</li>
+          <li>
+            <strong>Hint dots:</strong> Right-click or long-press any tile to
+            mark it with a color reminder for yourself.
+          </li>
+        </ul>
+        <br />
+        <button class="btn primary" onclick="closeModal('how-to-modal')">
+          Got it
+        </button>
+      </div>
     </div>
-    <div class="settings-hint">
-      <strong>0</strong> = no mistakes allowed &nbsp;·&nbsp; <strong>10</strong> = very forgiving
+
+    <!-- Result -->
+    <div class="modal-overlay hidden" id="result-modal">
+      <div class="modal">
+        <h2 id="result-title">Puzzle Complete!</h2>
+        <p id="result-msg"></p>
+        <div class="result-categories" id="result-cats"></div>
+        <div
+          style="
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 12px;
+            flex-wrap: wrap;
+          "
+        >
+          <button class="btn small" id="result-create-btn">
+            Create Your Own
+          </button>
+          <button class="btn small primary" id="result-play-again-btn">
+            Play Again
+          </button>
+        </div>
+      </div>
     </div>
-  </div>
 
-  <div class="creator-actions">
-    <button class="btn" id="cancel-create-btn">Cancel</button>
-    <button class="btn primary" id="generate-btn">Generate Link</button>
-  </div>
+    <!-- =================== SCRIPTS =================== -->
+    <script src="game.js"></script>
+    <script src="creator.js"></script>
+    <script>
+      // ===================== SUPABASE =====================
+      const SUPABASE_URL = "https://brqpchbwrizhlewfdjyf.supabase.co";
+      const SUPABASE_ANON_KEY =
+        "sb_publishable_WYF4_7b5VwPIpan89iv6NQ_PJYlP6pw";
 
-  <div class="share-result" id="share-result">
-    <strong style="font-size:15px;">Your puzzle link is ready! 🎉</strong>
-    <textarea class="share-url" id="share-url" readonly></textarea>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;">
-      <button class="btn primary small" id="copy-link-btn">Copy Link</button>
-      <button class="btn small" id="play-own-btn">Play It Now</button>
-    </div>
-  </div>
-</div>
+      const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-<!-- =================== HINT PICKER =================== -->
-<!-- Swatches are injected dynamically by game.js -->
-<div class="hint-picker" id="hint-picker"></div>
+      // Track current user (null if not logged in)
+      let currentUser = null;
+      sb.auth.getUser().then(({ data }) => {
+        currentUser = data?.user ?? null;
+      });
+      sb.auth.onAuthStateChange((_event, session) => {
+        currentUser = session?.user ?? null;
+        updateAuthUI();
+      });
 
-<!-- =================== TOAST =================== -->
-<div class="toast" id="toast"></div>
-
-<!-- =================== MODALS =================== -->
-
-<!-- How to Play -->
-<div class="modal-overlay hidden" id="how-to-modal">
-  <div class="modal">
-    <h2>How to Play</h2>
-    <p>Find groups of words that share something in common.</p>
-    <ul style="text-align:left;font-size:14px;color:var(--text-muted);line-height:1.9;padding-left:20px;">
-      <li>Tap words to select a full group, then press <strong>Submit</strong>.</li>
-      <li>Categories are color-coded by difficulty — Yellow is easiest, Purple hardest. Custom puzzles may also include Red and Orange.</li>
-      <li>Wrong guesses cost a mistake. Run out and the puzzle ends.</li>
-      <li><strong>Hint dots:</strong> Right-click or long-press any tile to mark it with a color reminder for yourself.</li>
-    </ul>
-    <br>
-    <button class="btn primary" onclick="closeModal('how-to-modal')">Got it</button>
-  </div>
-</div>
-
-<!-- Result -->
-<div class="modal-overlay hidden" id="result-modal">
-  <div class="modal">
-    <h2 id="result-title">Puzzle Complete!</h2>
-    <p id="result-msg"></p>
-    <div class="result-categories" id="result-cats"></div>
-    <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap;">
-      <button class="btn small" id="result-create-btn">Create Your Own</button>
-      <button class="btn small primary" id="result-play-again-btn">Play Again</button>
-    </div>
-  </div>
-</div>
-
-<!-- =================== SCRIPTS =================== -->
-<script src="game.js"></script>
-<script src="creator.js"></script>
-<script>
-  // Entry point — init() is defined in game.js, openCreator() in creator.js
-  init();
-</script>
-
-</body>
+      // Entry point — init() is defined in game.js, openCreator() in creator.js
+      init();
+    </script>
+  </body>
 </html>

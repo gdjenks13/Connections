@@ -4,44 +4,61 @@
 
 // ===================== CONSTANTS =====================
 const COLORS = {
-  0: { key: 'yellow', bg: '#f9df6d', text: '#000', label: 'Yellow' },
-  1: { key: 'green',  bg: '#a0c35a', text: '#000', label: 'Green'  },
-  2: { key: 'blue',   bg: '#b0c4ef', text: '#000', label: 'Blue'   },
-  3: { key: 'purple', bg: '#ba81c5', text: '#000', label: 'Purple' },
-  4: { key: 'red',    bg: '#f28b82', text: '#000', label: 'Red'    },
-  5: { key: 'orange', bg: '#f6b76b', text: '#000', label: 'Orange' },
+  0: { key: "yellow", bg: "#f9df6d", text: "#000", label: "Yellow" },
+  1: { key: "green", bg: "#a0c35a", text: "#000", label: "Green" },
+  2: { key: "blue", bg: "#b0c4ef", text: "#000", label: "Blue" },
+  3: { key: "purple", bg: "#ba81c5", text: "#000", label: "Purple" },
+  4: { key: "red", bg: "#f28b82", text: "#000", label: "Red" },
+  5: { key: "orange", bg: "#f6b76b", text: "#000", label: "Orange" },
 };
 
 // Color keys available for hint dots (all 6 category colors)
-const HINT_COLORS = ['yellow','green','blue','purple','red','orange'];
+const HINT_COLORS = ["yellow", "green", "blue", "purple", "red", "orange"];
 
 const DEFAULT_PUZZLE = {
   categories: [
-    { name: 'Things that start with FIRE', words: ['ANT','DRILL','ISLAND','OPAL'] },
-    { name: 'Types of FISH',               words: ['BASS','FLOUNDER','SALMON','TROUT'] },
-    { name: '___ STONE',                   words: ['COBBLE','CORNER','GREY','LIME'] },
-    { name: 'Can be "ROLLING"',            words: ['HILLS','PIN','STOCK','THUNDER'] },
+    {
+      name: "Things that start with FIRE",
+      words: ["ANT", "DRILL", "ISLAND", "OPAL"],
+    },
+    { name: "Types of FISH", words: ["BASS", "FLOUNDER", "SALMON", "TROUT"] },
+    { name: "___ STONE", words: ["COBBLE", "CORNER", "GREY", "LIME"] },
+    { name: 'Can be "ROLLING"', words: ["HILLS", "PIN", "STOCK", "THUNDER"] },
   ],
   maxMistakes: 4,
 };
 
 // ===================== STATE =====================
-let puzzle       = null;
-let tiles        = [];      // [{word, catIdx, el}]
-let selected     = [];      // indices into tiles[]
-let solved       = [];      // catIdx values that have been solved
-let mistakes     = 4;       // remaining mistakes
-let hints        = {};      // word -> color string
-let hintTargetWord  = null;
-let hintPickerOpen  = false;
-let longPressTimer  = null;
+let puzzle = null;
+let tiles = []; // [{word, catIdx, el}]
+let selected = []; // indices into tiles[]
+let solved = []; // catIdx values that have been solved
+let mistakes = 4; // remaining mistakes
+let hints = {}; // word -> color string
+let hintTargetWord = null;
+let hintPickerOpen = false;
+let longPressTimer = null;
 
 // ===================== INIT =====================
-function init() {
+async function init() {
   hints = loadHints();
-  const urlPuzzle = puzzleFromURL();
-  puzzle = urlPuzzle || DEFAULT_PUZZLE;
-  showScreen('game');
+  const params = new URLSearchParams(location.search);
+
+  if (params.get("id")) {
+    try {
+      puzzle = await loadPuzzleById(params.get("id"));
+    } catch (e) {
+      showToast("Could not load puzzle.");
+      puzzle = DEFAULT_PUZZLE;
+    }
+  } else {
+    // Legacy base64 support
+    const urlPuzzle = puzzleFromURL();
+    puzzle = urlPuzzle || DEFAULT_PUZZLE;
+  }
+
+  trackEvent("start");
+  showScreen("game");
   buildGame();
   bindGameButtons();
   bindHintPicker();
@@ -49,53 +66,101 @@ function init() {
   updateHintPickerSwatches();
 }
 
-// ===================== URL ENCODE / DECODE =====================
-function puzzleFromURL() {
-  const params = new URLSearchParams(location.search);
-  const p = params.get('p');
-  if (!p) return null;
-  try {
-    const json = atob(p.replace(/-/g, '+').replace(/_/g, '/'));
-    return JSON.parse(json);
-  } catch (e) { return null; }
+// ===================== SUPABASE PUZZLE FUNCTIONS =====================
+
+// Save puzzle to Supabase, return short URL using the UUID
+async function savePuzzle(puzzleData) {
+  const { data, error } = await sb
+    .from("puzzles")
+    .insert({
+      created_by: currentUser?.id ?? null,
+      title: puzzleData.title ?? null,
+      categories: puzzleData.categories,
+      max_mistakes: puzzleData.maxMistakes ?? 4,
+    })
+    .select("id")
+    .single();
+
+  if (error) throw error;
+  return `${location.origin}${location.pathname}?id=${data.id}`;
 }
 
-function puzzleToURL(puz) {
-  const json = JSON.stringify(puz);
-  const b64  = btoa(json).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
-  const url  = new URL(location.href);
-  url.search = '?p=' + b64;
-  return url.toString();
+// Load puzzle from Supabase by UUID
+async function loadPuzzleById(id) {
+  const { data, error } = await sb
+    .from("puzzles")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error) throw error;
+
+  // Increment play count (fire and forget)
+  sb.from("puzzles")
+    .update({ play_count: data.play_count + 1 })
+    .eq("id", id);
+
+  return {
+    categories: data.categories,
+    maxMistakes: data.max_mistakes,
+    _id: data.id,
+  };
+}
+
+// Legacy base64 support
+function puzzleFromURL() {
+  const params = new URLSearchParams(location.search);
+  const p = params.get("p");
+  if (!p) return null;
+  try {
+    const json = atob(p.replace(/-/g, "+").replace(/_/g, "/"));
+    return JSON.parse(json);
+  } catch (e) {
+    return null;
+  }
+}
+
+// ===================== ANALYTICS =====================
+async function trackEvent(type, metadata = {}) {
+  await sb.from("game_events").insert({
+    puzzle_id: puzzle?._id ?? null,
+    user_id: currentUser?.id ?? null,
+    event_type: type,
+    metadata,
+  });
 }
 
 // ===================== SCREEN SWITCHING =====================
 function showScreen(name) {
-  document.getElementById('game-screen').style.display    = name === 'game'    ? 'flex' : 'none';
-  document.getElementById('creator-screen').style.display = name === 'creator' ? 'flex' : 'none';
+  document.getElementById("game-screen").style.display =
+    name === "game" ? "flex" : "none";
+  document.getElementById("creator-screen").style.display =
+    name === "creator" ? "flex" : "none";
 }
 
 // ===================== BUILD GAME =====================
 function buildGame() {
-  solved   = [];
+  solved = [];
   selected = [];
-  mistakes = (puzzle.maxMistakes !== undefined) ? puzzle.maxMistakes : 4;
-  hints    = loadHints();
+  mistakes = puzzle.maxMistakes !== undefined ? puzzle.maxMistakes : 4;
+  hints = loadHints();
 
   const wordsPerCat = puzzle.categories[0].words.length;
 
   // Build flat tile list and shuffle
   const allTiles = [];
   puzzle.categories.forEach((cat, ci) => {
-    cat.words.forEach(w => allTiles.push({ word: w.toUpperCase(), catIdx: ci }));
+    cat.words.forEach((w) =>
+      allTiles.push({ word: w.toUpperCase(), catIdx: ci }),
+    );
   });
   tiles = shuffle(allTiles);
 
   // Set grid columns to match word count
-  const grid = document.getElementById('grid');
+  const grid = document.getElementById("grid");
   grid.style.gridTemplateColumns = `repeat(${wordsPerCat}, 1fr)`;
 
-  document.getElementById('solved-categories').innerHTML = '';
-  document.getElementById('game-category-hint').textContent =
+  document.getElementById("solved-categories").innerHTML = "";
+  document.getElementById("game-category-hint").textContent =
     `Find ${puzzle.categories.length} groups of ${wordsPerCat}!`;
 
   renderGrid();
@@ -104,53 +169,61 @@ function buildGame() {
 
 // ===================== RENDER GRID =====================
 function renderGrid() {
-  const grid = document.getElementById('grid');
-  grid.innerHTML = '';
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
 
   tiles.forEach((t, idx) => {
     if (solved.includes(t.catIdx)) return;
 
-    const el = document.createElement('div');
-    el.className    = 'tile';
-    el.dataset.idx  = idx;
+    const el = document.createElement("div");
+    el.className = "tile";
+    el.dataset.idx = idx;
     el.dataset.word = t.word;
-    el.textContent  = t.word;
+    el.textContent = t.word;
 
     // Hint dot (top-right corner, pointer-events none)
-    const dot = document.createElement('div');
-    dot.className    = 'tile-hint' + (hints[t.word] ? ' set hint-' + hints[t.word] : '');
-    dot.dataset.role = 'hint-dot';
+    const dot = document.createElement("div");
+    dot.className =
+      "tile-hint" + (hints[t.word] ? " set hint-" + hints[t.word] : "");
+    dot.dataset.role = "hint-dot";
     el.appendChild(dot);
 
     // Click to select
-    el.addEventListener('click', e => {
-      if (hintPickerOpen) { closeHintPicker(); return; }
+    el.addEventListener("click", (e) => {
+      if (hintPickerOpen) {
+        closeHintPicker();
+        return;
+      }
       onTileClick(idx, el);
     });
 
     // Right-click → hint picker
-    el.addEventListener('contextmenu', e => {
+    el.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       openHintPicker(el, t.word);
     });
 
     // Long-press (touch) → hint picker
-    el.addEventListener('touchstart', e => {
-      longPressTimer = setTimeout(() => {
-        openHintPicker(el, t.word);
-      }, 500);
-    }, { passive: true });
+    el.addEventListener(
+      "touchstart",
+      (e) => {
+        longPressTimer = setTimeout(() => {
+          openHintPicker(el, t.word);
+        }, 500);
+      },
+      { passive: true },
+    );
 
-    el.addEventListener('touchend',  () => clearTimeout(longPressTimer));
-    el.addEventListener('touchmove', () => clearTimeout(longPressTimer));
+    el.addEventListener("touchend", () => clearTimeout(longPressTimer));
+    el.addEventListener("touchmove", () => clearTimeout(longPressTimer));
 
     // Long-press (mouse) — desktop fallback
-    el.addEventListener('mousedown', e => {
+    el.addEventListener("mousedown", (e) => {
       if (e.button !== 0) return;
       longPressTimer = setTimeout(() => openHintPicker(el, t.word), 500);
     });
-    el.addEventListener('mouseup',    () => clearTimeout(longPressTimer));
-    el.addEventListener('mouseleave', () => clearTimeout(longPressTimer));
+    el.addEventListener("mouseup", () => clearTimeout(longPressTimer));
+    el.addEventListener("mouseleave", () => clearTimeout(longPressTimer));
 
     grid.appendChild(el);
     t.el = el;
@@ -161,12 +234,12 @@ function renderGrid() {
 function onTileClick(idx, el) {
   const wordsPerCat = puzzle.categories[0].words.length;
   if (selected.includes(idx)) {
-    selected = selected.filter(i => i !== idx);
-    el.classList.remove('selected');
+    selected = selected.filter((i) => i !== idx);
+    el.classList.remove("selected");
   } else {
     if (selected.length >= wordsPerCat) return;
     selected.push(idx);
-    el.classList.add('selected');
+    el.classList.add("selected");
   }
 }
 
@@ -179,8 +252,8 @@ async function handleSubmit() {
     return;
   }
 
-  const selCats  = selected.map(i => tiles[i].catIdx);
-  const allSame  = selCats.every(c => c === selCats[0]);
+  const selCats = selected.map((i) => tiles[i].catIdx);
+  const allSame = selCats.every((c) => c === selCats[0]);
 
   if (allSame) {
     const catIdx = selCats[0];
@@ -190,6 +263,7 @@ async function handleSubmit() {
     selected = [];
 
     appendSolvedCard(catIdx);
+    trackEvent("guess_correct", { category: puzzle.categories[catIdx].name });
     renderGrid();
     renderMistakeDots();
 
@@ -198,16 +272,19 @@ async function handleSubmit() {
     }
   } else {
     // "One away" check
-    const counts   = {};
-    selCats.forEach(c => counts[c] = (counts[c] || 0) + 1);
+    const counts = {};
+    selCats.forEach((c) => (counts[c] = (counts[c] || 0) + 1));
     const maxMatch = Math.max(...Object.values(counts));
-    if (maxMatch === wordsPerCat - 1) showToast('One away…');
+    if (maxMatch === wordsPerCat - 1) showToast("One away…");
 
     shakeSelectedTiles();
     mistakes--;
+    trackEvent("guess_wrong", { mistakesRemaining: mistakes });
     renderMistakeDots();
 
-    selected.forEach(i => tiles[i].el && tiles[i].el.classList.remove('selected'));
+    selected.forEach(
+      (i) => tiles[i].el && tiles[i].el.classList.remove("selected"),
+    );
     selected = [];
 
     if (mistakes <= 0) {
@@ -218,13 +295,15 @@ async function handleSubmit() {
 
 // ===================== ANIMATIONS =====================
 async function bounceSelectedTiles() {
-  return new Promise(resolve => {
-    const els = selected.map(i => tiles[i].el).filter(Boolean);
+  return new Promise((resolve) => {
+    const els = selected.map((i) => tiles[i].el).filter(Boolean);
     els.forEach((el, i) => {
       setTimeout(() => {
-        el.style.transition = 'transform 0.15s ease';
-        el.style.transform  = 'scale(1.08) translateY(-4px)';
-        setTimeout(() => { el.style.transform = ''; }, 150);
+        el.style.transition = "transform 0.15s ease";
+        el.style.transform = "scale(1.08) translateY(-4px)";
+        setTimeout(() => {
+          el.style.transform = "";
+        }, 150);
       }, i * 60);
     });
     setTimeout(resolve, els.length * 60 + 200);
@@ -232,100 +311,106 @@ async function bounceSelectedTiles() {
 }
 
 function shakeSelectedTiles() {
-  selected.forEach(i => {
+  selected.forEach((i) => {
     const el = tiles[i].el;
     if (!el) return;
-    el.classList.remove('shake');
+    el.classList.remove("shake");
     void el.offsetWidth; // reflow
-    el.classList.add('shake');
-    el.addEventListener('animationend', () => el.classList.remove('shake'), { once: true });
+    el.classList.add("shake");
+    el.addEventListener("animationend", () => el.classList.remove("shake"), {
+      once: true,
+    });
   });
 }
 
 // ===================== SOLVED CARD =====================
 function appendSolvedCard(catIdx) {
-  const cat   = puzzle.categories[catIdx];
+  const cat = puzzle.categories[catIdx];
   const color = COLORS[catIdx];
-  const card  = document.createElement('div');
-  card.className    = 'solved-card';
+  const card = document.createElement("div");
+  card.className = "solved-card";
   card.style.background = color.bg;
   card.innerHTML = `
     <div class="solved-card-label">${color.label}</div>
     <div class="solved-card-title">${cat.name}</div>
-    <div class="solved-card-words">${cat.words.join(', ')}</div>
+    <div class="solved-card-words">${cat.words.join(", ")}</div>
   `;
-  document.getElementById('solved-categories').appendChild(card);
+  document.getElementById("solved-categories").appendChild(card);
 }
 
 // ===================== MISTAKES DOTS =====================
 function renderMistakeDots() {
-  const area  = document.getElementById('mistake-dots');
-  const wrap  = area.parentElement;
-  const total = (puzzle && puzzle.maxMistakes !== undefined) ? puzzle.maxMistakes : 4;
+  const area = document.getElementById("mistake-dots");
+  const wrap = area.parentElement;
+  const total =
+    puzzle && puzzle.maxMistakes !== undefined ? puzzle.maxMistakes : 4;
 
-  wrap.style.display = total === 0 ? 'none' : 'flex';
-  area.innerHTML     = '';
+  wrap.style.display = total === 0 ? "none" : "flex";
+  area.innerHTML = "";
 
   for (let i = 0; i < total; i++) {
-    const dot       = document.createElement('div');
-    dot.className   = 'mistake-dot' + (i >= mistakes ? ' used' : '');
+    const dot = document.createElement("div");
+    dot.className = "mistake-dot" + (i >= mistakes ? " used" : "");
     area.appendChild(dot);
   }
 }
 
 // ===================== RESULT MODAL =====================
 function showResultModal(won) {
-  const total = (puzzle.maxMistakes !== undefined) ? puzzle.maxMistakes : 4;
-  const used  = total - mistakes;
+  const total = puzzle.maxMistakes !== undefined ? puzzle.maxMistakes : 4;
+  const used = total - mistakes;
 
-  document.getElementById('result-title').textContent = won ? '🎉 Solved!' : '😔 Better luck next time!';
-  document.getElementById('result-msg').textContent   = won
-    ? `You solved the puzzle with ${used} mistake${used === 1 ? '' : 's'}!`
-    : 'The correct answers were:';
+  document.getElementById("result-title").textContent = won
+    ? "🎉 Solved!"
+    : "😔 Better luck next time!";
+  document.getElementById("result-msg").textContent = won
+    ? `You solved the puzzle with ${used} mistake${used === 1 ? "" : "s"}!`
+    : "The correct answers were:";
 
-  const rc = document.getElementById('result-cats');
-  rc.innerHTML = '';
+  const rc = document.getElementById("result-cats");
+  rc.innerHTML = "";
   puzzle.categories.forEach((cat, ci) => {
     const color = COLORS[ci];
-    const div   = document.createElement('div');
-    div.className         = 'result-cat';
-    div.style.background  = color.bg;
+    const div = document.createElement("div");
+    div.className = "result-cat";
+    div.style.background = color.bg;
     div.innerHTML = `<strong>${cat.name}</strong><br>
-      <span style="font-size:12px;font-weight:500">${cat.words.join(', ')}</span>`;
+      <span style="font-size:12px;font-weight:500">${cat.words.join(", ")}</span>`;
     rc.appendChild(div);
   });
 
-  document.getElementById('result-modal').classList.remove('hidden');
+  trackEvent(won ? "win" : "lose", { mistakesUsed: total - mistakes });
+  document.getElementById("result-modal").classList.remove("hidden");
 }
 
 // ===================== HINT PICKER =====================
 function updateHintPickerSwatches() {
   // Rebuild swatches to include all 6 colors
-  const picker = document.getElementById('hint-picker');
-  picker.innerHTML = '';
+  const picker = document.getElementById("hint-picker");
+  picker.innerHTML = "";
 
   // Clear swatch
-  const clearSwatch = document.createElement('div');
-  clearSwatch.className    = 'hint-swatch none';
-  clearSwatch.dataset.color = 'none';
-  clearSwatch.title        = 'Clear';
+  const clearSwatch = document.createElement("div");
+  clearSwatch.className = "hint-swatch none";
+  clearSwatch.dataset.color = "none";
+  clearSwatch.title = "Clear";
   picker.appendChild(clearSwatch);
 
-  HINT_COLORS.forEach(colorKey => {
-    const color = Object.values(COLORS).find(c => c.key === colorKey);
+  HINT_COLORS.forEach((colorKey) => {
+    const color = Object.values(COLORS).find((c) => c.key === colorKey);
     if (!color) return;
-    const swatch = document.createElement('div');
-    swatch.className    = 'hint-swatch';
+    const swatch = document.createElement("div");
+    swatch.className = "hint-swatch";
     swatch.dataset.color = colorKey;
-    swatch.title        = color.label;
-    swatch.style.background  = color.bg;
+    swatch.title = color.label;
+    swatch.style.background = color.bg;
     swatch.style.borderColor = color.bg; // subtle
     picker.appendChild(swatch);
   });
 
   // Re-bind click events on new swatches
-  picker.querySelectorAll('.hint-swatch').forEach(swatch => {
-    swatch.addEventListener('click', e => {
+  picker.querySelectorAll(".hint-swatch").forEach((swatch) => {
+    swatch.addEventListener("click", (e) => {
       e.stopPropagation();
       applyHint(swatch.dataset.color);
     });
@@ -333,36 +418,36 @@ function updateHintPickerSwatches() {
 }
 
 function openHintPicker(tileEl, word) {
-  hintPickerOpen  = true;
-  hintTargetWord  = word;
+  hintPickerOpen = true;
+  hintTargetWord = word;
 
-  const picker = document.getElementById('hint-picker');
-  picker.classList.add('visible');
+  const picker = document.getElementById("hint-picker");
+  picker.classList.add("visible");
 
   // Position near tile
   requestAnimationFrame(() => {
     const rect = tileEl.getBoundingClientRect();
-    const pw   = picker.offsetWidth;
-    const ph   = picker.offsetHeight;
-    let left   = rect.right - pw;
-    let top    = rect.top - ph - 8;
-    if (top < 8)                     top  = rect.bottom + 8;
-    if (left < 8)                    left = 8;
+    const pw = picker.offsetWidth;
+    const ph = picker.offsetHeight;
+    let left = rect.right - pw;
+    let top = rect.top - ph - 8;
+    if (top < 8) top = rect.bottom + 8;
+    if (left < 8) left = 8;
     if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
-    picker.style.left = left + 'px';
-    picker.style.top  = top  + 'px';
+    picker.style.left = left + "px";
+    picker.style.top = top + "px";
   });
 }
 
 function closeHintPicker() {
   hintPickerOpen = false;
   hintTargetWord = null;
-  document.getElementById('hint-picker').classList.remove('visible');
+  document.getElementById("hint-picker").classList.remove("visible");
 }
 
 function applyHint(color) {
   if (!hintTargetWord) return;
-  if (color === 'none') {
+  if (color === "none") {
     delete hints[hintTargetWord];
   } else {
     hints[hintTargetWord] = color;
@@ -370,11 +455,13 @@ function applyHint(color) {
   saveHints();
 
   // Update dot on matching tile element
-  tiles.forEach(t => {
+  tiles.forEach((t) => {
     if (t.word === hintTargetWord && t.el) {
       const dot = t.el.querySelector('[data-role="hint-dot"]');
       if (dot) {
-        dot.className = 'tile-hint' + (hints[hintTargetWord] ? ' set hint-' + hints[hintTargetWord] : '');
+        dot.className =
+          "tile-hint" +
+          (hints[hintTargetWord] ? " set hint-" + hints[hintTargetWord] : "");
       }
     }
   });
@@ -384,82 +471,128 @@ function applyHint(color) {
 
 // ===================== HINT STORAGE =====================
 function loadHints() {
-  try { return JSON.parse(sessionStorage.getItem('conn_hints') || '{}'); } catch { return {}; }
+  try {
+    return JSON.parse(sessionStorage.getItem("conn_hints") || "{}");
+  } catch {
+    return {};
+  }
 }
 
 function saveHints() {
-  try { sessionStorage.setItem('conn_hints', JSON.stringify(hints)); } catch {}
+  try {
+    sessionStorage.setItem("conn_hints", JSON.stringify(hints));
+  } catch {}
 }
 
 // ===================== BIND BUTTONS =====================
 function bindGameButtons() {
-  document.getElementById('submit-btn').addEventListener('click', handleSubmit);
+  document.getElementById("submit-btn").addEventListener("click", handleSubmit);
 
-  document.getElementById('shuffle-btn').addEventListener('click', () => {
-    const unsolved = tiles.filter(t => !solved.includes(t.catIdx));
+  document.getElementById("shuffle-btn").addEventListener("click", () => {
+    const unsolved = tiles.filter((t) => !solved.includes(t.catIdx));
     const shuffled = shuffle(unsolved);
     let si = 0;
-    tiles = tiles.map(t => solved.includes(t.catIdx) ? t : shuffled[si++]);
+    tiles = tiles.map((t) => (solved.includes(t.catIdx) ? t : shuffled[si++]));
     selected = [];
     renderGrid();
   });
 
-  document.getElementById('deselect-btn').addEventListener('click', () => {
-    selected.forEach(i => tiles[i].el && tiles[i].el.classList.remove('selected'));
+  document.getElementById("deselect-btn").addEventListener("click", () => {
+    selected.forEach(
+      (i) => tiles[i].el && tiles[i].el.classList.remove("selected"),
+    );
     selected = [];
   });
 
-  document.getElementById('how-to-btn').addEventListener('click', () => {
-    document.getElementById('how-to-modal').classList.remove('hidden');
+  document.getElementById("how-to-btn").addEventListener("click", () => {
+    document.getElementById("how-to-modal").classList.remove("hidden");
   });
 
-  document.getElementById('create-btn').addEventListener('click', () => {
+  document.getElementById("create-btn").addEventListener("click", () => {
     openCreator();
   });
 
-  document.getElementById('result-create-btn').addEventListener('click', () => {
-    closeModal('result-modal');
+  document.getElementById("result-create-btn").addEventListener("click", () => {
+    closeModal("result-modal");
     openCreator();
   });
 
-  document.getElementById('result-play-again-btn').addEventListener('click', () => {
-    closeModal('result-modal');
-    buildGame();
-  });
+  document
+    .getElementById("result-play-again-btn")
+    .addEventListener("click", () => {
+      closeModal("result-modal");
+      buildGame();
+    });
 }
 
 function bindHintPicker() {
   // Close on click outside
-  document.addEventListener('click', e => {
-    if (hintPickerOpen && !e.target.closest('#hint-picker')) closeHintPicker();
+  document.addEventListener("click", (e) => {
+    if (hintPickerOpen && !e.target.closest("#hint-picker")) closeHintPicker();
   });
 
-  document.addEventListener('touchstart', e => {
-    if (hintPickerOpen && !e.target.closest('#hint-picker')) closeHintPicker();
-  }, { passive: true });
+  document.addEventListener(
+    "touchstart",
+    (e) => {
+      if (hintPickerOpen && !e.target.closest("#hint-picker"))
+        closeHintPicker();
+    },
+    { passive: true },
+  );
 }
 
 function bindModals() {
-  document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', e => {
-      if (e.target === overlay) overlay.classList.add('hidden');
+  document.querySelectorAll(".modal-overlay").forEach((overlay) => {
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) overlay.classList.add("hidden");
     });
   });
 }
 
 // ===================== MODAL HELPERS =====================
 function closeModal(id) {
-  document.getElementById(id).classList.add('hidden');
+  document.getElementById(id).classList.add("hidden");
 }
 
 // ===================== TOAST =====================
 let toastTimer = null;
 function showToast(msg) {
-  const t = document.getElementById('toast');
+  const t = document.getElementById("toast");
   t.textContent = msg;
-  t.classList.add('show');
+  t.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
+}
+
+// ===================== AUTH UI =====================
+function updateAuthUI() {
+  const btn = document.getElementById("auth-btn");
+  if (!btn) return;
+  btn.textContent = currentUser ? "My Puzzles" : "Sign In";
+}
+
+async function handleAuth() {
+  if (currentUser) {
+    // Show a simple "my puzzles" list — query puzzles by created_by
+    const { data } = await sb
+      .from("puzzles")
+      .select("id, title, created_at, play_count")
+      .eq("created_by", currentUser.id)
+      .order("created_at", { ascending: false });
+
+    // Display them however you like — a modal works well
+    console.log("Your puzzles:", data);
+  } else {
+    // Trigger magic link / email login
+    const email = prompt("Enter your email for a magic sign-in link:");
+    if (email) {
+      await sb.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: location.href },
+      });
+      showToast("Check your email for a sign-in link!");
+    }
+  }
 }
 
 // ===================== UTILS =====================
