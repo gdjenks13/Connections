@@ -328,21 +328,29 @@ header h1 {
 .tile {
   aspect-ratio: 1.15;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   background-color: var(--tile-bg);
   border-radius: 10px;
   cursor: pointer;
   font-weight: 700;
-  font-size: 0.8rem;
+  font-size: 1rem;
   text-transform: uppercase;
   text-align: center;
   padding: 8px 6px;
   transition: all 0.15s ease;
   user-select: none;
-  word-break: break-word;
-  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  line-height: 1.1;
   box-shadow: var(--shadow-sm);
+}
+
+.tile-word {
+  display: block;
+  white-space: nowrap;
+  line-height: 1.1;
 }
 
 .tile:hover:not(.selected):not(.disabled) {
@@ -596,6 +604,38 @@ header h1 {
 
 #modal-results {
   margin-bottom: 24px;
+}
+
+/* Modal Share Section */
+.modal-share {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.modal-share textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 10px;
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", monospace;
+  font-size: 1.1rem;
+  line-height: 1.4;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  resize: none;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.modal-share textarea:focus {
+  outline: none;
+  border-color: var(--text-secondary);
+}
+
+.modal-share .control-btn {
+  width: 100%;
+  padding: 12px 24px;
 }
 
 .result-row {
@@ -931,7 +971,6 @@ header h1 {
   }
 
   .tile {
-    font-size: 0.65rem;
     padding: 6px 4px;
     aspect-ratio: 1.1;
     border-radius: 8px;
@@ -1001,7 +1040,7 @@ header h1 {
   }
 
   .tile {
-    font-size: 0.55rem;
+    padding: 4px 3px;
   }
 
   .controls {

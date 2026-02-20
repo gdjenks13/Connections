@@ -1,6 +1,36 @@
 // Pre-made puzzles library - Add more puzzles here!
 const puzzleLibrary = [
   {
+    id: "glenn1",
+    name: "Glenn 1",
+    description: "",
+    puzzle: {
+      categories: [
+        {
+          name: "Dog Breeds",
+          color: "yellow",
+          items: ["Boxer", "Hound", "Pointer", "Shepherd"],
+        },
+        {
+          name: "Baseball Pitches",
+          color: "green",
+          items: ["Knuckle", "Fast", "Curve", "Screw"],
+        },
+        {
+          name: "Famous Glen(n)'s",
+          color: "blue",
+          items: ["Powell", "Close", "Beck", "Quagmire"],
+        },
+        {
+          name: "Golden _____",
+          color: "purple",
+          items: ["Retriever", "Gate", "Ratio", "Ticket"],
+        },
+      ],
+      mistakes: 4,
+    },
+  },
+  {
     id: "motorsports",
     name: "Motorsports Legends",
     description: "Racing drivers across different series",
@@ -124,6 +154,13 @@ document.addEventListener("DOMContentLoaded", () => {
   loadPuzzle();
 });
 
+// Debounced resize handler for text fitting
+let resizeTimeout;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimeout);
+  resizeTimeout = setTimeout(() => fitTileText(), 100);
+});
+
 // Theme handling
 function initTheme() {
   const savedTheme = localStorage.getItem("connections-theme") || "light";
@@ -226,16 +263,210 @@ function updatePuzzleNameDisplay(name) {
   }
 }
 
-// Encode puzzle for URL sharing
-function encodePuzzle(puzzleData) {
-  const json = JSON.stringify(puzzleData);
-  return btoa(encodeURIComponent(json));
-}
+// LZ-String decompression (minimal implementation for URL decoding)
+const LZString = {
+  _keyStr: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_",
+  _keyStrInv: null,
 
-// Decode puzzle from URL
+  _getKeyStrInv: function () {
+    if (this._keyStrInv === null) {
+      this._keyStrInv = {};
+      for (let i = 0; i < this._keyStr.length; i++) {
+        this._keyStrInv[this._keyStr.charAt(i)] = i;
+      }
+    }
+    return this._keyStrInv;
+  },
+
+  decompressFromEncodedURIComponent: function (input) {
+    if (input == null) return "";
+    if (input == "") return null;
+    const keyStrInv = this._getKeyStrInv();
+    return this._decompress(input.length, 32, function (index) {
+      return keyStrInv[input.charAt(index)];
+    });
+  },
+
+  _decompress: function (length, resetValue, getNextValue) {
+    let dictionary = [],
+      enlargeIn = 4,
+      dictSize = 4,
+      numBits = 3,
+      entry = "",
+      result = [],
+      i,
+      w,
+      c,
+      data = { val: getNextValue(0), position: resetValue, index: 1 };
+
+    for (i = 0; i < 3; i++) {
+      dictionary[i] = i;
+    }
+
+    let bits = 0;
+    let maxpower = Math.pow(2, 2);
+    let power = 1;
+    while (power != maxpower) {
+      let resb = data.val & data.position;
+      data.position >>= 1;
+      if (data.position == 0) {
+        data.position = resetValue;
+        data.val = getNextValue(data.index++);
+      }
+      bits |= (resb > 0 ? 1 : 0) * power;
+      power <<= 1;
+    }
+
+    switch (bits) {
+      case 0:
+        bits = 0;
+        maxpower = Math.pow(2, 8);
+        power = 1;
+        while (power != maxpower) {
+          let resb = data.val & data.position;
+          data.position >>= 1;
+          if (data.position == 0) {
+            data.position = resetValue;
+            data.val = getNextValue(data.index++);
+          }
+          bits |= (resb > 0 ? 1 : 0) * power;
+          power <<= 1;
+        }
+        c = String.fromCharCode(bits);
+        break;
+      case 1:
+        bits = 0;
+        maxpower = Math.pow(2, 16);
+        power = 1;
+        while (power != maxpower) {
+          let resb = data.val & data.position;
+          data.position >>= 1;
+          if (data.position == 0) {
+            data.position = resetValue;
+            data.val = getNextValue(data.index++);
+          }
+          bits |= (resb > 0 ? 1 : 0) * power;
+          power <<= 1;
+        }
+        c = String.fromCharCode(bits);
+        break;
+      case 2:
+        return "";
+    }
+    dictionary[3] = c;
+    w = c;
+    result.push(c);
+
+    while (true) {
+      if (data.index > length) return "";
+
+      bits = 0;
+      maxpower = Math.pow(2, numBits);
+      power = 1;
+      while (power != maxpower) {
+        let resb = data.val & data.position;
+        data.position >>= 1;
+        if (data.position == 0) {
+          data.position = resetValue;
+          data.val = getNextValue(data.index++);
+        }
+        bits |= (resb > 0 ? 1 : 0) * power;
+        power <<= 1;
+      }
+
+      switch ((c = bits)) {
+        case 0:
+          bits = 0;
+          maxpower = Math.pow(2, 8);
+          power = 1;
+          while (power != maxpower) {
+            let resb = data.val & data.position;
+            data.position >>= 1;
+            if (data.position == 0) {
+              data.position = resetValue;
+              data.val = getNextValue(data.index++);
+            }
+            bits |= (resb > 0 ? 1 : 0) * power;
+            power <<= 1;
+          }
+          dictionary[dictSize++] = String.fromCharCode(bits);
+          c = dictSize - 1;
+          enlargeIn--;
+          break;
+        case 1:
+          bits = 0;
+          maxpower = Math.pow(2, 16);
+          power = 1;
+          while (power != maxpower) {
+            let resb = data.val & data.position;
+            data.position >>= 1;
+            if (data.position == 0) {
+              data.position = resetValue;
+              data.val = getNextValue(data.index++);
+            }
+            bits |= (resb > 0 ? 1 : 0) * power;
+            power <<= 1;
+          }
+          dictionary[dictSize++] = String.fromCharCode(bits);
+          c = dictSize - 1;
+          enlargeIn--;
+          break;
+        case 2:
+          return result.join("");
+      }
+
+      if (enlargeIn == 0) {
+        enlargeIn = Math.pow(2, numBits);
+        numBits++;
+      }
+
+      if (dictionary[c]) {
+        entry = dictionary[c];
+      } else {
+        if (c === dictSize) {
+          entry = w + w.charAt(0);
+        } else {
+          return null;
+        }
+      }
+      result.push(entry);
+
+      dictionary[dictSize++] = w + entry.charAt(0);
+      enlargeIn--;
+
+      if (enlargeIn == 0) {
+        enlargeIn = Math.pow(2, numBits);
+        numBits++;
+      }
+
+      w = entry;
+    }
+  },
+};
+
+// Decode puzzle from URL (compressed format)
 function decodePuzzle(encoded) {
-  const json = decodeURIComponent(atob(encoded));
-  return JSON.parse(json);
+  const decompressed = LZString.decompressFromEncodedURIComponent(encoded);
+  // Parse compact format: name|mistakes|cat1name,item1,item2,item3,item4|cat2...|cat3...|cat4...
+  const parts = decompressed.split("|");
+  const colors = ["yellow", "green", "blue", "purple"];
+
+  const puzzleObj = {
+    name: parts[0],
+    mistakes: parseInt(parts[1]),
+    categories: [],
+  };
+
+  for (let i = 2; i < 6 && i < parts.length; i++) {
+    const catParts = parts[i].split(",");
+    puzzleObj.categories.push({
+      name: catParts[0],
+      color: colors[i - 2],
+      items: catParts.slice(1),
+    });
+  }
+
+  return puzzleObj;
 }
 
 // Initialize game
@@ -309,8 +540,20 @@ function renderGrid() {
   items.forEach((item) => {
     const tile = document.createElement("div");
     tile.className = "tile";
-    tile.textContent = item;
     tile.dataset.item = item;
+
+    // Split into words and create spans for each
+    const words = item.split(" ");
+    if (words.length > 1) {
+      words.forEach((word, i) => {
+        const span = document.createElement("span");
+        span.className = "tile-word";
+        span.textContent = word;
+        tile.appendChild(span);
+      });
+    } else {
+      tile.textContent = item;
+    }
 
     if (selectedTiles.includes(item)) {
       tile.classList.add("selected");
@@ -324,6 +567,68 @@ function renderGrid() {
 
     gameGrid.appendChild(tile);
   });
+
+  // Apply dynamic font sizing after tiles are in DOM
+  requestAnimationFrame(() => fitTileText());
+}
+
+// Fit text to tile size dynamically
+function fitTileText() {
+  const tiles = document.querySelectorAll(".tile");
+
+  tiles.forEach((tile) => {
+    const tileWidth = tile.clientWidth - 12; // Account for padding
+    const tileHeight = tile.clientHeight - 16;
+    const words = tile.querySelectorAll(".tile-word");
+
+    if (words.length > 1) {
+      // Multi-word: stack words vertically, size each to fit width
+      const heightPerWord = tileHeight / words.length;
+      words.forEach((wordSpan) => {
+        const fontSize = calculateFontSize(
+          wordSpan.textContent,
+          tileWidth,
+          heightPerWord * 0.85,
+        );
+        wordSpan.style.fontSize = fontSize + "px";
+      });
+    } else {
+      // Single word: fit to tile
+      const text = tile.textContent;
+      const fontSize = calculateFontSize(text, tileWidth, tileHeight * 0.6);
+      tile.style.fontSize = fontSize + "px";
+    }
+  });
+}
+
+// Calculate optimal font size for text to fit within bounds
+function calculateFontSize(text, maxWidth, maxHeight) {
+  // Create measurement element
+  const measurer = document.createElement("span");
+  measurer.style.cssText =
+    "position:absolute;visibility:hidden;white-space:nowrap;font-weight:700;font-family:inherit;";
+  document.body.appendChild(measurer);
+
+  // Binary search for optimal font size
+  let min = 14;
+  let max = 18;
+  let optimal = min;
+
+  while (min <= max) {
+    const mid = Math.floor((min + max) / 2);
+    measurer.style.fontSize = mid + "px";
+    measurer.textContent = text;
+
+    if (measurer.offsetWidth <= maxWidth && mid <= maxHeight) {
+      optimal = mid;
+      min = mid + 1;
+    } else {
+      max = mid - 1;
+    }
+  }
+
+  document.body.removeChild(measurer);
+  return Math.min(optimal, 20); // Cap at reasonable max
 }
 
 // Handle tile click
@@ -424,30 +729,53 @@ function handleCorrectGuess(category) {
   solvedCategories.push(category);
 
   // Get selected tiles and their positions
-  const selectedTileEls = document.querySelectorAll(".tile.selected");
+  const selectedTileEls = Array.from(
+    document.querySelectorAll(".tile.selected"),
+  );
   const gridRect = gameGrid.getBoundingClientRect();
-  const solvedRect = solvedContainer.getBoundingClientRect();
 
-  // Calculate target position (where the new solved row will appear)
-  const targetY = solvedRect.bottom - gridRect.top + 10;
+  // Calculate target row position (where the solved row will appear)
+  const solvedRows = solvedContainer.children.length;
+  const rowHeight = 80; // matches min-height in CSS
+  const rowGap = 10;
+  const targetRowTop = solvedRows * (rowHeight + rowGap);
 
-  // Animate tiles flying up
-  selectedTileEls.forEach((tile, index) => {
+  // Store original positions and prepare tiles for animation
+  const tileData = selectedTileEls.map((tile, index) => {
     const tileRect = tile.getBoundingClientRect();
-    const startX = tileRect.left - gridRect.left;
-    const startY = tileRect.top - gridRect.top;
+    return {
+      tile,
+      startX: tileRect.left - gridRect.left,
+      startY: tileRect.top - gridRect.top,
+      width: tileRect.width,
+      height: tileRect.height,
+    };
+  });
 
-    // Calculate end position (spread across the row)
-    const rowWidth = gridRect.width;
-    const tileWidth = rowWidth / 4;
-    const endX = index * tileWidth + tileWidth / 2 - tileRect.width / 2;
-    const endY = -tileRect.height - 20;
+  // Sort tiles by their current position for consistent left-to-right animation
+  tileData.sort((a, b) => {
+    const rowA = Math.floor(a.startY / 100);
+    const rowB = Math.floor(b.startY / 100);
+    if (rowA !== rowB) return rowA - rowB;
+    return a.startX - b.startX;
+  });
 
+  // Calculate the target position for each tile in the solved row
+  const rowWidth = gridRect.width;
+  const tileWidth = rowWidth / 4;
+  const solvedContainerRect = solvedContainer.getBoundingClientRect();
+  const offsetY = solvedContainerRect.top - gridRect.top + targetRowTop;
+
+  // Phase 1: Animate tiles to their positions in the solved row
+  tileData.forEach((data, index) => {
+    const { tile, startX, startY, width, height } = data;
+
+    // Set initial absolute position
     tile.style.position = "absolute";
     tile.style.left = startX + "px";
     tile.style.top = startY + "px";
-    tile.style.width = tileRect.width + "px";
-    tile.style.height = tileRect.height + "px";
+    tile.style.width = width + "px";
+    tile.style.height = height + "px";
     tile.style.zIndex = "100";
     tile.classList.add("flying");
     tile.classList.remove("selected");
@@ -456,33 +784,47 @@ function handleCorrectGuess(category) {
     tile.style.backgroundColor = `var(--${category.color}-bg)`;
     tile.style.color = `var(--${category.color}-text)`;
 
-    // Animate to final position
-    requestAnimationFrame(() => {
-      tile.style.transition = "all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)";
+    // Calculate end position in the row
+    const endX = index * tileWidth + (tileWidth - width) / 2;
+    const endY = offsetY + (rowHeight - height) / 2;
+
+    // Stagger the animation slightly for each tile
+    setTimeout(() => {
+      tile.style.transition = "all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)";
       tile.style.left = endX + "px";
       tile.style.top = endY + "px";
-      tile.style.opacity = "0";
-      tile.style.transform = "scale(0.8)";
-    });
+    }, index * 50);
   });
 
   showMessage("Correct! 🎉", "success");
 
-  setTimeout(() => {
-    // Add solved row
-    addSolvedRow(category);
+  // Phase 2: After tiles reach position, merge them into the solved row
+  setTimeout(
+    () => {
+      // Fade out the flying tiles
+      tileData.forEach(({ tile }) => {
+        tile.style.transition = "opacity 0.2s ease";
+        tile.style.opacity = "0";
+      });
 
-    // Clear selection
-    selectedTiles = [];
+      // Add the actual solved row
+      setTimeout(() => {
+        addSolvedRow(category);
 
-    // Check for win
-    if (solvedCategories.length === 4) {
-      handleWin();
-    } else {
-      renderGrid();
-      updateSubmitButton();
-    }
-  }, 500);
+        // Clear selection
+        selectedTiles = [];
+
+        // Check for win
+        if (solvedCategories.length === 4) {
+          handleWin();
+        } else {
+          renderGrid();
+          updateSubmitButton();
+        }
+      }, 200);
+    },
+    400 + (tileData.length - 1) * 50,
+  );
 }
 
 // Handle wrong guess
@@ -644,6 +986,34 @@ function showModal(title, message, won = false) {
 
     modalResults.appendChild(row);
   });
+
+  // Show copyable share text in modal when puzzle is complete
+  const modalShare = document.getElementById("modal-share");
+  const modalShareText = document.getElementById("modal-share-text");
+  const modalCopyBtn = document.getElementById("modal-copy-btn");
+
+  if (modalShare && modalShareText) {
+    const isComplete = solvedCategories.length === 4;
+    if (isComplete) {
+      modalShareText.value = generateShareText(won || isUnlimited);
+      modalShare.style.display = "block";
+
+      // Set up copy button handler
+      if (modalCopyBtn) {
+        modalCopyBtn.onclick = () => {
+          modalShareText.select();
+          navigator.clipboard.writeText(modalShareText.value).then(() => {
+            modalCopyBtn.textContent = "Copied!";
+            setTimeout(() => {
+              modalCopyBtn.textContent = "Copy Results";
+            }, 2000);
+          });
+        };
+      }
+    } else {
+      modalShare.style.display = "none";
+    }
+  }
 
   modal.classList.add("show");
 }
