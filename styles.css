@@ -933,11 +933,19 @@ header h1 {
 
 /* Small screen tweaks */
 @media (max-width: 380px) {
-  .tile {
-    font-size: 11px;
+  header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
   }
   header h1 {
     font-size: 20px;
+  }
+  .header-btns {
+    flex-direction: column;
+  }
+  .tile {
+    font-size: 11px;
   }
   .btn {
     font-size: 11px;
