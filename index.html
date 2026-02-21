@@ -6,10 +6,10 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
-    <title>Connections</title>
+    <title>Connections PLUS!</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;700;800&family=DM+Serif+Display&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
@@ -18,8 +18,9 @@
   <body>
     <!-- =================== HEADER =================== -->
     <header>
-      <h1>Connections</h1>
+      <h1>Connections PLUS!</h1>
       <div class="header-btns">
+        <button class="btn small" id="puzzles-btn">Browse Puzzles</button>
         <button class="btn small" id="how-to-btn">How to Play</button>
         <button class="btn small primary" id="create-btn">Create</button>
       </div>
@@ -58,7 +59,11 @@
           Choose categories &amp; words, then share the link.
         </div>
       </div>
-
+      <!-- Puzzle title -->
+      <div class=\"settings-card\">
+        <label>Puzzle Title (optional)</label>
+        <input type=\"text\" id=\"puzzle-title\" placeholder=\"e.g. My Favorite Puzzle\" maxlength=\"50\" />
+      </div>
       <!-- Category count + words per cat controls -->
       <div class="creator-controls">
         <div class="control-group">
@@ -131,6 +136,15 @@
 
     <!-- =================== MODALS =================== -->
 
+    <!-- Puzzles Library -->
+    <div class="modal-overlay hidden" id="puzzles-modal">
+      <div class="modal">
+        <h2>Browse Puzzles</h2>
+        <div id="puzzles-list" class="puzzles-list"></div>
+        <button class="btn primary" onclick="closeModal('puzzles-modal')">Close</button>
+      </div>
+    </div>
+
     <!-- How to Play -->
     <div class="modal-overlay hidden" id="how-to-modal">
       <div class="modal">
@@ -171,7 +185,7 @@
       <div class="modal">
         <h2 id="result-title">Puzzle Complete!</h2>
         <p id="result-msg"></p>
-        <div class="result-categories" id="result-cats"></div>
+        <div class="result-categories" id="result-cats"></div>`n        <div id="result-emoji" style="font-size: 18px; font-family: monospace; letter-spacing: 2px; margin: 16px 0; line-height: 1.8; white-space: pre;"></div>
         <div
           style="
             display: flex;
@@ -181,7 +195,7 @@
             flex-wrap: wrap;
           "
         >
-          <button class="btn small" id="result-create-btn">
+          <button class="btn small copy-result-btn" id="copy-result-btn" style="display:none;">Copy Result</button>`n          `<button class="btn small" id="result-create-btn">
             Create Your Own
           </button>
           <button class="btn small primary" id="result-play-again-btn">
@@ -217,3 +231,6 @@
     </script>
   </body>
 </html>
+
+
+

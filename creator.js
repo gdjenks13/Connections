@@ -205,7 +205,8 @@ async function handleGenerate() {
   }
 
   const maxMistakes = parseInt(document.getElementById("mistake-slider").value);
-  const newPuzzle = { categories, maxMistakes };
+  const title = document.getElementById("puzzle-title")?.value.trim() || "Untitled Puzzle";
+  const newPuzzle = { categories, maxMistakes, title };
 
   // Show loading state
   document.getElementById("generate-btn").textContent = "Saving...";
@@ -255,3 +256,4 @@ async function handlePlayOwn() {
     showToast("Something went wrong.");
   }
 }
+

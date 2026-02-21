@@ -181,12 +181,22 @@ function renderGrid() {
     el.dataset.word = t.word;
     el.textContent = t.word;
 
-    // Hint dot (top-right corner, pointer-events none)
-    const dot = document.createElement("div");
-    dot.className =
-      "tile-hint" + (hints[t.word] ? " set hint-" + hints[t.word] : "");
-    dot.dataset.role = "hint-dot";
-    el.appendChild(dot);
+    // Hint dots container (top-right corner, up to 2 colors)
+    const dotContainer = document.createElement("div");
+    dotContainer.className = "tile-hint-container";
+    dotContainer.dataset.role = "hint-dot-container";
+
+    const wordHints = hints[t.word] || [];
+    if (wordHints.length > 0) {
+      wordHints.forEach((colorKey) => {
+        const dot = document.createElement("div");
+        dot.className = `tile-hint set hint-${colorKey}`;
+        dot.style.background =
+          Object.values(COLORS).find((c) => c.key === colorKey)?.bg || "#ccc";
+        dotContainer.appendChild(dot);
+      });
+    }
+    el.appendChild(dotContainer);
 
     // Click to select
     el.addEventListener("click", (e) => {
@@ -379,6 +389,15 @@ function showResultModal(won) {
     rc.appendChild(div);
   });
 
+  const emojiEl = document.getElementById("result-emoji");
+  if (emojiEl) {
+    emojiEl.textContent = generateEmojiResult();
+    const copyBtn = document.getElementById("copy-result-btn");
+    if (copyBtn) {
+      copyBtn.style.display = "inline-flex";
+    }
+  }
+
   trackEvent(won ? "win" : "lose", { mistakesUsed: total - mistakes });
   document.getElementById("result-modal").classList.remove("hidden");
 }
@@ -447,21 +466,49 @@ function closeHintPicker() {
 
 function applyHint(color) {
   if (!hintTargetWord) return;
+
+  // Initialize or get existing hints for this word
+  if (!hints[hintTargetWord]) {
+    hints[hintTargetWord] = [];
+  }
+
+  // "none" clears all hints
   if (color === "none") {
     delete hints[hintTargetWord];
   } else {
-    hints[hintTargetWord] = color;
+    // Toggle the color (add if not present, remove if present)
+    const idx = hints[hintTargetWord].indexOf(color);
+    if (idx > -1) {
+      hints[hintTargetWord].splice(idx, 1);
+    } else if (hints[hintTargetWord].length < 2) {
+      // Allow max 2 colors
+      hints[hintTargetWord].push(color);
+    } else {
+      // If already 2 colors, replace the one we clicked
+      hints[hintTargetWord][1] = color;
+    }
+
+    // Clean up empty arrays
+    if (hints[hintTargetWord].length === 0) {
+      delete hints[hintTargetWord];
+    }
   }
   saveHints();
 
-  // Update dot on matching tile element
+  // Update dots on matching tile element
   tiles.forEach((t) => {
     if (t.word === hintTargetWord && t.el) {
-      const dot = t.el.querySelector('[data-role="hint-dot"]');
-      if (dot) {
-        dot.className =
-          "tile-hint" +
-          (hints[hintTargetWord] ? " set hint-" + hints[hintTargetWord] : "");
+      const container = t.el.querySelector('[data-role="hint-dot-container"]');
+      if (container) {
+        container.innerHTML = "";
+        const wordHints = hints[hintTargetWord] || [];
+        wordHints.forEach((colorKey) => {
+          const dot = document.createElement("div");
+          dot.className = `tile-hint set hint-${colorKey}`;
+          dot.style.background =
+            Object.values(COLORS).find((c) => c.key === colorKey)?.bg || "#ccc";
+          container.appendChild(dot);
+        });
       }
     }
   });
@@ -506,6 +553,10 @@ function bindGameButtons() {
 
   document.getElementById("how-to-btn").addEventListener("click", () => {
     document.getElementById("how-to-modal").classList.remove("hidden");
+  });
+
+  document.getElementById("puzzles-btn").addEventListener("click", () => {
+    loadAndShowPuzzles();
   });
 
   document.getElementById("create-btn").addEventListener("click", () => {
@@ -564,6 +615,63 @@ function showToast(msg) {
   toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
 }
 
+// ===================== PUZZLE BROWSER =====================
+async function loadAndShowPuzzles() {
+  const list = document.getElementById("puzzles-list");
+  list.innerHTML =
+    '<div style="text-align: center; color: var(--text-muted);">Loading puzzles...</div>';
+
+  try {
+    const { data, error } = await sb
+      .from("puzzles")
+      .select("id, title, created_at, play_count, created_by")
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      list.innerHTML =
+        '<div style="text-align: center; color: var(--text-muted);">No puzzles yet. Create one!</div>';
+      document.getElementById("puzzles-modal").classList.remove("hidden");
+      return;
+    }
+
+    list.innerHTML = "";
+    data.forEach((puz) => {
+      const item = document.createElement("div");
+      item.className = "puzzle-item";
+      const title = puz.title || "Untitled Puzzle";
+      const date = new Date(puz.created_at).toLocaleDateString();
+      const creator = puz.created_by ? "(Custom)" : "(Default)";
+
+      item.innerHTML = `
+        <div class="puzzle-item-title">${escapeHtml(title)}</div>
+        <div class="puzzle-item-meta">${creator} • ${puz.play_count} plays • ${date}</div>
+      `;
+
+      item.addEventListener("click", () => {
+        closeModal("puzzles-modal");
+        window.location.href = `${location.pathname}?id=${puz.id}`;
+      });
+
+      list.appendChild(item);
+    });
+
+    document.getElementById("puzzles-modal").classList.remove("hidden");
+  } catch (err) {
+    list.innerHTML =
+      '<div style="text-align: center; color: var(--text-muted);">Error loading puzzles</div>';
+    document.getElementById("puzzles-modal").classList.remove("hidden");
+  }
+}
+
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 // ===================== AUTH UI =====================
 function updateAuthUI() {
   const btn = document.getElementById("auth-btn");
@@ -604,3 +712,113 @@ function shuffle(arr) {
   }
   return a;
 }
+// ===================== EMOJI COPY FUNCTIONALITY =====================
+const EMOJI_MAP = {
+  yellow: "🟨",
+  green: "🟩",
+  blue: "🟦",
+  purple: "🟪",
+  red: "🟥",
+  orange: "🟧",
+};
+
+function generateEmojiResult() {
+  const total = puzzle.maxMistakes !== undefined ? puzzle.maxMistakes : 4;
+  const used = total - mistakes;
+  const emojiLines = [];
+
+  puzzle.categories.forEach((cat, ci) => {
+    const color = COLORS[ci];
+    const emoji = EMOJI_MAP[color.key] || "⬜";
+    emojiLines.push(emoji.repeat(puzzle.categories[0].words.length));
+  });
+
+  const emojiStr = emojiLines.join("\n");
+  return emojiStr;
+}
+
+function handleCopyResult() {
+  const emojiText = generateEmojiResult();
+  const resultText = `Connections PLUS!\n\n${emojiText}`;
+
+  navigator.clipboard
+    .writeText(resultText)
+    .then(() => showToast("Result copied!"))
+    .catch(() => {
+      const ta = document.createElement("textarea");
+      ta.value = resultText;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      showToast("Result copied!");
+    });
+}
+
+// ===================== PUZZLE BROWSER =====================
+async function openPuzzlesBrowser() {
+  const modal = document.getElementById("puzzles-modal");
+  if (!modal) return;
+
+  modal.classList.remove("hidden");
+  const listEl = document.getElementById("puzzles-list");
+  listEl.innerHTML =
+    '<p style="text-align: center; color: var(--text-muted);">Loading puzzles...</p>';
+
+  try {
+    const { data, error } = await sb
+      .from("puzzles")
+      .select("id, title, created_at, play_count, categories")
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (error) throw error;
+
+    listEl.innerHTML = "";
+    if (data.length === 0) {
+      listEl.innerHTML =
+        '<p style="text-align: center; color: var(--text-muted);">No puzzles found.</p>';
+      return;
+    }
+
+    data.forEach((p) => {
+      const item = document.createElement("div");
+      item.className = "puzzle-item";
+      const catCount = p.categories?.length || 0;
+      const title = p.title || "Untitled Puzzle";
+      item.innerHTML = `
+        <div class="puzzle-item-title">${escapeHtml(title)}</div>
+        <div class="puzzle-item-meta">${catCount} categories • ${p.play_count} plays</div>
+      `;
+      item.addEventListener("click", () => {
+        loadAndPlayPuzzle(p.id);
+        closeModal("puzzles-modal");
+      });
+      listEl.appendChild(item);
+    });
+  } catch (e) {
+    listEl.innerHTML =
+      '<p style="text-align: center; color: red;">Error loading puzzles.</p>';
+    console.error(e);
+  }
+}
+
+async function loadAndPlayPuzzle(id) {
+  try {
+    puzzle = await loadPuzzleById(id);
+    history.pushState({}, "", `${location.pathname}?id=${id}`);
+    trackEvent("start");
+    showScreen("game");
+    buildGame();
+  } catch (e) {
+    showToast("Could not load puzzle.");
+  }
+}
+
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+

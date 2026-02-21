@@ -1,36 +1,44 @@
 /* ===================== RESET & VARS ===================== */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 :root {
-  --yellow:      #f9df6d;
+  --yellow: #f9df6d;
   --yellow-dark: #c8a900;
-  --green:       #a0c35a;
-  --green-dark:  #5a8a00;
-  --blue:        #b0c4ef;
-  --blue-dark:   #3a5fa0;
-  --purple:      #ba81c5;
+  --green: #a0c35a;
+  --green-dark: #5a8a00;
+  --blue: #b0c4ef;
+  --blue-dark: #3a5fa0;
+  --purple: #ba81c5;
   --purple-dark: #7a2fa0;
-  --red:         #f28b82;
-  --red-dark:    #b91c1c;
-  --orange:      #f6b76b;
+  --red: #f28b82;
+  --red-dark: #b91c1c;
+  --orange: #f6b76b;
   --orange-dark: #c2570a;
 
-  --bg:                #ffffff;
-  --surface:           #f8f8f8;
-  --border:            #e0e0e0;
-  --text:              #1a1a1a;
-  --text-muted:        #666;
-  --tile-bg:           #efefe6;
-  --tile-hover:        #deded3;
-  --tile-selected:     #5a594e;
-  --tile-selected-text:#ffffff;
-  --radius:            6px;
-  --gap:               8px;
+  --bg: #ffffff;
+  --surface: #f8f8f8;
+  --border: #e0e0e0;
+  --text: #1a1a1a;
+  --text-muted: #666;
+  --tile-bg: #efefe6;
+  --tile-hover: #deded3;
+  --tile-selected: #5a594e;
+  --tile-selected-text: #ffffff;
+  --radius: 6px;
+  --gap: 8px;
 }
 
 /* ===================== BASE ===================== */
 body {
-  font-family: 'Karla', sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue",
+    sans-serif;
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
@@ -51,40 +59,62 @@ header {
 }
 
 header h1 {
-  font-family: 'DM Serif Display', serif;
+  font-family: "DM Serif Display", serif;
   font-size: 24px;
   letter-spacing: -0.5px;
 }
 
-.header-btns { display: flex; gap: 8px; }
+.header-btns {
+  display: flex;
+  gap: 8px;
+}
 
 /* ===================== BUTTONS ===================== */
 .btn {
-  font-family: 'Karla', sans-serif;
-  font-weight: 700;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue",
+    sans-serif;
+  font-weight: 600;
   font-size: 13px;
   padding: 6px 14px;
   border-radius: 20px;
   border: 2px solid var(--text);
   background: transparent;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
   letter-spacing: 0.3px;
   white-space: nowrap;
 }
 
 @media (hover: hover) {
-  .btn:hover { background: var(--text); color: #fff; }
+  .btn:hover {
+    background: var(--text);
+    color: #fff;
+  }
 }
 
-.btn.primary { background: var(--text); color: #fff; }
+.btn.primary {
+  background: var(--text);
+  color: #fff;
+}
 
 @media (hover: hover) {
-  .btn.primary:hover { background: #333; border-color: #333; }
+  .btn.primary:hover {
+    background: #333;
+    border-color: #333;
+  }
 }
 
-.btn.small { font-size: 12px; padding: 5px 12px; }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn.small {
+  font-size: 12px;
+  padding: 5px 12px;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 /* ===================== GAME SCREEN ===================== */
 #game-screen {
@@ -96,10 +126,12 @@ header h1 {
   gap: 12px;
 }
 
-.game-header { text-align: center; }
+.game-header {
+  text-align: center;
+}
 
 .game-title {
-  font-family: 'DM Serif Display', serif;
+  font-family: "DM Serif Display", serif;
   font-size: 18px;
   color: var(--text-muted);
 }
@@ -141,10 +173,16 @@ header h1 {
   flex-shrink: 0;
 }
 
-.mistake-dot.used { background: #ccc; }
+.mistake-dot.used {
+  background: #ccc;
+}
 
 /* ===================== SOLVED CATEGORIES ===================== */
-.solved-categories { display: flex; flex-direction: column; gap: var(--gap); }
+.solved-categories {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
 
 .solved-card {
   border-radius: var(--radius);
@@ -197,18 +235,23 @@ header h1 {
   letter-spacing: 0.5px;
   cursor: pointer;
   user-select: none;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
   padding: 6px;
   line-height: 1.2;
-  word-break: break-word;
-  hyphens: auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
   -webkit-tap-highlight-color: transparent;
   /* Allow long-press context menu, but don't interfere with scroll */
   touch-action: manipulation;
 }
 
 @media (hover: hover) {
-  .tile:hover:not(.selected) { background: var(--tile-hover); }
+  .tile:hover:not(.selected) {
+    background: var(--tile-hover);
+  }
 }
 
 .tile.selected {
@@ -229,48 +272,170 @@ header h1 {
   transition: opacity 0.2s;
 }
 
-.tile-hint.set { opacity: 1; }
+.tile-hint.set {
+  opacity: 1;
+}
 
-.tile-hint.hint-yellow { background: var(--yellow); border: 1px solid var(--yellow-dark); }
-.tile-hint.hint-green  { background: var(--green);  border: 1px solid var(--green-dark); }
-.tile-hint.hint-blue   { background: var(--blue);   border: 1px solid var(--blue-dark); }
-.tile-hint.hint-purple { background: var(--purple);  border: 1px solid var(--purple-dark); }
-.tile-hint.hint-red    { background: var(--red);    border: 1px solid var(--red-dark); }
-.tile-hint.hint-orange { background: var(--orange);  border: 1px solid var(--orange-dark); }
+.tile-hint.hint-yellow {
+  background: var(--yellow);
+  border: 1px solid var(--yellow-dark);
+}
+.tile-hint.hint-green {
+  background: var(--green);
+  border: 1px solid var(--green-dark);
+}
+.tile-hint.hint-blue {
+  background: var(--blue);
+  border: 1px solid var(--blue-dark);
+}
+.tile-hint.hint-purple {
+  background: var(--purple);
+  border: 1px solid var(--purple-dark);
+}
+.tile-hint.hint-red {
+  background: var(--red);
+  border: 1px solid var(--red-dark);
+}
+.tile-hint.hint-orange {
+  background: var(--orange);
+  border: 1px solid var(--orange-dark);
+}
 
 /* ===================== ANIMATIONS ===================== */
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  15%       { transform: translateX(-6px); }
-  30%       { transform: translateX(6px); }
-  45%       { transform: translateX(-6px); }
-  60%       { transform: translateX(6px); }
-  75%       { transform: translateX(-4px); }
-  90%       { transform: translateX(4px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  15% {
+    transform: translateX(-6px);
+  }
+  30% {
+    transform: translateX(6px);
+  }
+  45% {
+    transform: translateX(-6px);
+  }
+  60% {
+    transform: translateX(6px);
+  }
+  75% {
+    transform: translateX(-4px);
+  }
+  90% {
+    transform: translateX(4px);
+  }
 }
 
-.shake { animation: shake 0.5s ease; }
+.shake {
+  animation: shake 0.5s ease;
+}
 
 @keyframes bounceIn {
-  0%   { transform: scaleY(0.8); opacity: 0; }
-  60%  { transform: scaleY(1.04); }
-  100% { transform: scaleY(1); opacity: 1; }
+  0% {
+    transform: scaleY(0.8);
+    opacity: 0;
+  }
+  60% {
+    transform: scaleY(1.04);
+  }
+  100% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
 }
 
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* ===================== GAME ACTIONS ===================== */
 .game-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   justify-content: center;
   flex-wrap: wrap;
+  margin-top: 12px;
 }
 
-/* ===================== HINT PICKER ===================== */
+.game-actions .btn {
+  padding: 14px 24px;
+  font-size: 15px;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+/* ===================== PUZZLES LIST ===================== */
+.puzzles-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  max-height: 60vh;
+  overflow-y: auto;
+  text-align: left;
+  margin: 16px 0;
+}
+
+.puzzle-item {
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+@media (hover: hover) {
+  .puzzle-item:hover {
+    border-color: var(--text);
+    background: #f0f0f0;
+  }
+}
+
+.puzzle-item-title {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.puzzle-item-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ===================== HINT DOTS MULTIPLE ===================== */
+.tile-hint-container {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: flex;
+  gap: 3px;
+  pointer-events: none;
+}
+
+.tile-hint {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.2s;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.tile-hint.set {
+  opacity: 1;
+}
 .hint-picker {
   position: fixed;
   z-index: 1000;
@@ -300,7 +465,9 @@ header h1 {
 }
 
 @media (hover: hover) {
-  .hint-swatch:hover { transform: scale(1.25); }
+  .hint-swatch:hover {
+    transform: scale(1.25);
+  }
 }
 
 .hint-swatch.none {
@@ -312,16 +479,22 @@ header h1 {
 
 .hint-swatch.none::before,
 .hint-swatch.none::after {
-  content: '';
+  content: "";
   position: absolute;
-  top: 50%; left: 50%;
-  width: 70%; height: 2px;
+  top: 50%;
+  left: 50%;
+  width: 70%;
+  height: 2px;
   background: #999;
   transform-origin: center;
 }
 
-.hint-swatch.none::before { transform: translate(-50%, -50%) rotate(45deg); }
-.hint-swatch.none::after  { transform: translate(-50%, -50%) rotate(-45deg); }
+.hint-swatch.none::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.hint-swatch.none::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
 
 /* ===================== TOAST ===================== */
 .toast {
@@ -331,8 +504,10 @@ header h1 {
   transform: translateX(-50%);
   background: var(--text);
   color: #fff;
-  font-family: 'Karla', sans-serif;
-  font-weight: 700;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue",
+    sans-serif;
+  font-weight: 600;
   font-size: 14px;
   padding: 10px 20px;
   border-radius: 20px;
@@ -343,7 +518,9 @@ header h1 {
   white-space: nowrap;
 }
 
-.toast.show { opacity: 1; }
+.toast.show {
+  opacity: 1;
+}
 
 /* ===================== MODALS ===================== */
 .modal-overlay {
@@ -361,7 +538,7 @@ header h1 {
   background: #fff;
   border-radius: 12px;
   padding: 28px 24px;
-  max-width: 440px;
+  max-width: 480px;
   width: 100%;
   text-align: center;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
@@ -370,14 +547,23 @@ header h1 {
 }
 
 .modal h2 {
-  font-family: 'DM Serif Display', serif;
+  font-family: "DM Serif Display", serif;
   font-size: 26px;
   margin-bottom: 12px;
 }
 
-.modal p { color: var(--text-muted); font-size: 14px; margin-bottom: 16px; }
+.modal p {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
 
-.result-categories { display: flex; flex-direction: column; gap: 8px; margin: 16px 0; }
+.result-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0;
+}
 
 .result-cat {
   padding: 10px 14px;
@@ -404,7 +590,7 @@ header h1 {
 }
 
 .creator-title {
-  font-family: 'DM Serif Display', serif;
+  font-family: "DM Serif Display", serif;
   font-size: 22px;
 }
 
@@ -448,7 +634,7 @@ header h1 {
 }
 
 .stepper-val {
-  font-family: 'DM Serif Display', serif;
+  font-family: "DM Serif Display", serif;
   font-size: 22px;
   min-width: 28px;
   text-align: center;
@@ -467,12 +653,19 @@ header h1 {
   align-items: center;
   justify-content: center;
   line-height: 1;
-  transition: background 0.15s, color 0.15s;
-  font-family: 'Karla', sans-serif;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue",
+    sans-serif;
 }
 
 @media (hover: hover) {
-  .stepper-btn:hover { background: var(--text); color: #fff; }
+  .stepper-btn:hover {
+    background: var(--text);
+    color: #fff;
+  }
 }
 
 /* Category cards in creator */
@@ -484,12 +677,24 @@ header h1 {
   gap: 10px;
 }
 
-.category-card.y { background: var(--yellow); }
-.category-card.g { background: var(--green); }
-.category-card.b { background: var(--blue); }
-.category-card.p { background: var(--purple); }
-.category-card.r { background: var(--red); }
-.category-card.o { background: var(--orange); }
+.category-card.y {
+  background: var(--yellow);
+}
+.category-card.g {
+  background: var(--green);
+}
+.category-card.b {
+  background: var(--blue);
+}
+.category-card.p {
+  background: var(--purple);
+}
+.category-card.r {
+  background: var(--red);
+}
+.category-card.o {
+  background: var(--orange);
+}
 
 .category-card label {
   font-size: 11px;
@@ -505,15 +710,19 @@ header h1 {
   border: none;
   border-radius: 6px;
   padding: 8px 10px;
-  font-family: 'Karla', sans-serif;
-  font-weight: 700;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue",
+    sans-serif;
+  font-weight: 600;
   font-size: 14px;
   background: rgba(255, 255, 255, 0.6);
   outline: none;
   transition: background 0.15s;
 }
 
-.category-card input[type="text"]:focus { background: rgba(255, 255, 255, 0.9); }
+.category-card input[type="text"]:focus {
+  background: rgba(255, 255, 255, 0.9);
+}
 
 .diff-label {
   display: flex;
@@ -545,7 +754,9 @@ header h1 {
   border: none;
   border-radius: 6px;
   padding: 8px 10px;
-  font-family: 'Karla', sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue",
+    sans-serif;
   font-weight: 600;
   font-size: 13px;
   text-transform: uppercase;
@@ -554,7 +765,9 @@ header h1 {
   transition: background 0.15s;
 }
 
-.word-inputs input[type="text"]:focus { background: rgba(255, 255, 255, 0.9); }
+.word-inputs input[type="text"]:focus {
+  background: rgba(255, 255, 255, 0.9);
+}
 
 /* Settings card */
 .settings-card {
@@ -596,7 +809,7 @@ header h1 {
 }
 
 .slider-val {
-  font-family: 'DM Serif Display', serif;
+  font-family: "DM Serif Display", serif;
   font-size: 22px;
   min-width: 28px;
   text-align: center;
@@ -622,14 +835,16 @@ header h1 {
   border: 2px solid var(--border);
 }
 
-.share-result.visible { display: flex; }
+.share-result.visible {
+  display: flex;
+}
 
 .share-url {
   width: 100%;
   border: 2px solid var(--border);
   border-radius: 8px;
   padding: 10px 12px;
-  font-family: 'Karla', sans-serif;
+  font-family: "Karla", sans-serif;
   font-size: 12px;
   color: var(--text-muted);
   background: #fff;
@@ -639,12 +854,61 @@ header h1 {
   height: 72px;
 }
 
+/* ===================== PUZZLES LIST ===================== */
+.puzzles-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  max-height: 60vh;
+  overflow-y: auto;
+  text-align: left;
+  margin: 16px 0;
+}
+
+.puzzle-item {
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+@media (hover: hover) {
+  .puzzle-item:hover {
+    border-color: var(--text);
+    background: #f0f0f0;
+  }
+}
+
+.puzzle-item-title {
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.puzzle-item-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 /* ===================== UTILS ===================== */
-.hidden { display: none !important; }
+.hidden {
+  display: none !important;
+}
 
 /* Small screen tweaks */
 @media (max-width: 380px) {
-  .tile { font-size: 11px; }
-  header h1 { font-size: 20px; }
-  .btn { font-size: 11px; padding: 5px 10px; }
+  .tile {
+    font-size: 11px;
+  }
+  header h1 {
+    font-size: 20px;
+  }
+  .btn {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
 }
