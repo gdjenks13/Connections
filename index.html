@@ -44,8 +44,12 @@
         <div id="mistake-dots"></div>
       </div>
 
+      <div id="hints-remaining" class="hints-area"></div>
+
       <div class="game-actions">
+        <button class="btn small" id="reset-btn">Reset</button>
         <button class="btn small" id="shuffle-btn">Shuffle</button>
+        <button class="btn small" id="hint-btn">Hint</button>
         <button class="btn small" id="deselect-btn">Deselect All</button>
         <button class="btn small primary" id="submit-btn">Submit</button>
       </div>
@@ -100,6 +104,18 @@
         <div class="settings-hint">
           <strong>0</strong> = no mistakes allowed &nbsp;·&nbsp;
           <strong>10</strong> = very forgiving
+        </div>
+      </div>
+
+      <div class="settings-card">
+        <label>Hints Allowed (0–5)</label>
+        <div class="slider-row">
+          <input type="range" id="hints-slider" min="0" max="5" value="3" />
+          <span class="slider-val" id="hints-slider-val">3</span>
+        </div>
+        <div class="settings-hint">
+          <strong>0</strong> = no hints &nbsp;·&nbsp;
+          <strong>5</strong> = maximum hints
         </div>
       </div>
 
@@ -185,7 +201,8 @@
       <div class="modal">
         <h2 id="result-title">Puzzle Complete!</h2>
         <p id="result-msg"></p>
-        <div class="result-categories" id="result-cats"></div>`n        <div id="result-emoji" style="font-size: 18px; font-family: monospace; letter-spacing: 2px; margin: 16px 0; line-height: 1.8; white-space: pre;"></div>
+        <div class="result-categories" id="result-cats"></div>
+        <div id="result-emoji" style="font-size: 18px; font-family: monospace; letter-spacing: 2px; margin: 16px 0; line-height: 1.8; white-space: pre;"></div>
         <div
           style="
             display: flex;
@@ -195,7 +212,8 @@
             flex-wrap: wrap;
           "
         >
-          <button class="btn small copy-result-btn" id="copy-result-btn" style="display:none;">Copy Result</button>`n          `<button class="btn small" id="result-create-btn">
+          <button class="btn small copy-result-btn" id="copy-result-btn" style="display:none;">Copy Result</button>
+          <button class="btn small" id="result-create-btn">
             Create Your Own
           </button>
           <button class="btn small primary" id="result-play-again-btn">

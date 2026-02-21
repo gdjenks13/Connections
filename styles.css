@@ -177,6 +177,15 @@ header h1 {
   background: #ccc;
 }
 
+.hints-area {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 700;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
 /* ===================== SOLVED CATEGORIES ===================== */
 .solved-categories {
   display: flex;
@@ -190,6 +199,7 @@ header h1 {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  text-align: center;
   animation: bounceIn 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
 }
 
@@ -257,6 +267,28 @@ header h1 {
 .tile.selected {
   background: var(--tile-selected);
   color: var(--tile-selected-text);
+}
+
+.tile.duplicate-guess {
+  background: #ff6b6b;
+  color: white;
+  border: 2px solid #c92a2a;
+}
+
+.tile.hint-outline {
+  border: 3px solid var(--hint-color, #999);
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
+  animation: hint-glow 0.6s ease-in-out;
+}
+
+@keyframes hint-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(0, 0, 0, 0.4);
+  }
 }
 
 /* ===================== TILE HINT DOT ===================== */

@@ -154,6 +154,13 @@ function bindCreatorButtons() {
   slider.addEventListener("input", () => {
     sliderVal.textContent = slider.value;
   });
+
+  // Hints slider
+  const hintsSlider = document.getElementById("hints-slider");
+  const hintsSliderVal = document.getElementById("hints-slider-val");
+  hintsSlider.addEventListener("input", () => {
+    hintsSliderVal.textContent = hintsSlider.value;
+  });
 }
 
 function replaceListener(id, fn) {
@@ -205,8 +212,10 @@ async function handleGenerate() {
   }
 
   const maxMistakes = parseInt(document.getElementById("mistake-slider").value);
-  const title = document.getElementById("puzzle-title")?.value.trim() || "Untitled Puzzle";
-  const newPuzzle = { categories, maxMistakes, title };
+  const hintsAllowed = parseInt(document.getElementById("hints-slider").value);
+  const title =
+    document.getElementById("puzzle-title")?.value.trim() || "Untitled Puzzle";
+  const newPuzzle = { categories, maxMistakes, hintsAllowed, title };
 
   // Show loading state
   document.getElementById("generate-btn").textContent = "Saving...";
@@ -256,4 +265,3 @@ async function handlePlayOwn() {
     showToast("Something went wrong.");
   }
 }
-

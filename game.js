@@ -38,6 +38,12 @@ let hints = {}; // word -> color string
 let hintTargetWord = null;
 let hintPickerOpen = false;
 let longPressTimer = null;
+let guessedCombos = []; // array of already guessed category indices
+let hintsRemaining = 3; // hints user can still use
+let hintsAllowed = 3; // configured number of hints
+let isDuplicateSelection = false; // flag for duplicate guess highlight
+let lastHintedCat = -1; // track which category was last hinted
+let wrongGuessCount = 0; // track wrong guesses for emoji
 
 // ===================== INIT =====================
 async function init() {
@@ -56,6 +62,9 @@ async function init() {
     const urlPuzzle = puzzleFromURL();
     puzzle = urlPuzzle || DEFAULT_PUZZLE;
   }
+
+  // Load hints state for this puzzle (restores from session if page was refreshed)
+  loadHintsState();
 
   trackEvent("start");
   showScreen("game");
@@ -77,6 +86,7 @@ async function savePuzzle(puzzleData) {
       title: puzzleData.title ?? null,
       categories: puzzleData.categories,
       max_mistakes: puzzleData.maxMistakes ?? 4,
+      hints_allowed: puzzleData.hintsAllowed ?? 3,
     })
     .select("id")
     .single();
@@ -102,6 +112,7 @@ async function loadPuzzleById(id) {
   return {
     categories: data.categories,
     maxMistakes: data.max_mistakes,
+    hintsAllowed: data.hints_allowed ?? 3,
     _id: data.id,
   };
 }
@@ -138,10 +149,30 @@ function showScreen(name) {
 }
 
 // ===================== BUILD GAME =====================
-function buildGame() {
-  solved = [];
-  selected = [];
-  mistakes = puzzle.maxMistakes !== undefined ? puzzle.maxMistakes : 4;
+function buildGame(resetHints = false, resetGameState = false) {
+  if (resetGameState) {
+    // Full reset: clear all persisted state
+    solved = [];
+    selected = [];
+    guessedCombos = [];
+    lastHintedCat = -1;
+    wrongGuessCount = 0;
+    mistakes = puzzle.maxMistakes !== undefined ? puzzle.maxMistakes : 4;
+    hintsRemaining = hintsAllowed;
+    clearGameState();
+  } else {
+    // Load persisted game state if available
+    solved = [];
+    selected = [];
+    guessedCombos = [];
+    lastHintedCat = -1;
+    mistakes = puzzle.maxMistakes !== undefined ? puzzle.maxMistakes : 4;
+    hintsAllowed = puzzle.hintsAllowed !== undefined ? puzzle.hintsAllowed : 3;
+    if (resetHints) {
+      hintsRemaining = hintsAllowed;
+    }
+    loadGameState();
+  }
   hints = loadHints();
 
   const wordsPerCat = puzzle.categories[0].words.length;
@@ -165,6 +196,7 @@ function buildGame() {
 
   renderGrid();
   renderMistakeDots();
+  renderHintsRemaining();
 }
 
 // ===================== RENDER GRID =====================
@@ -246,10 +278,44 @@ function onTileClick(idx, el) {
   if (selected.includes(idx)) {
     selected = selected.filter((i) => i !== idx);
     el.classList.remove("selected");
+    el.classList.remove("duplicate-guess");
+    isDuplicateSelection = false;
+    updateDuplicateHighlight();
   } else {
     if (selected.length >= wordsPerCat) return;
     selected.push(idx);
     el.classList.add("selected");
+
+    // Check if this selection is a duplicate guess
+    if (selected.length === wordsPerCat) {
+      const selectedCats = selected.map((i) => tiles[i].catIdx).sort();
+      isDuplicateSelection = guessedCombos.some(
+        (combo) => JSON.stringify(combo) === JSON.stringify(selectedCats),
+      );
+
+      // Update visual feedback for duplicate
+      updateDuplicateHighlight();
+    }
+  }
+}
+
+function updateDuplicateHighlight() {
+  const submitBtn = document.getElementById("submit-btn");
+  if (isDuplicateSelection) {
+    selected.forEach((i) => {
+      if (tiles[i].el) {
+        tiles[i].el.classList.add("duplicate-guess");
+      }
+    });
+    if (submitBtn) submitBtn.disabled = true;
+  } else {
+    // Remove duplicate-guess class from ALL tiles, not just selected ones
+    tiles.forEach((t) => {
+      if (t.el) {
+        t.el.classList.remove("duplicate-guess");
+      }
+    });
+    if (submitBtn) submitBtn.disabled = false;
   }
 }
 
@@ -262,7 +328,7 @@ async function handleSubmit() {
     return;
   }
 
-  const selCats = selected.map((i) => tiles[i].catIdx);
+  const selCats = selected.map((i) => tiles[i].catIdx).sort();
   const allSame = selCats.every((c) => c === selCats[0]);
 
   if (allSame) {
@@ -272,10 +338,14 @@ async function handleSubmit() {
     solved.push(catIdx);
     selected = [];
 
+    // Track this guess before clearing
+    guessedCombos.push(selCats);
+
     appendSolvedCard(catIdx);
     trackEvent("guess_correct", { category: puzzle.categories[catIdx].name });
     renderGrid();
     renderMistakeDots();
+    saveGameState();
 
     if (solved.length === puzzle.categories.length) {
       setTimeout(() => showResultModal(true), 600);
@@ -289,6 +359,11 @@ async function handleSubmit() {
 
     shakeSelectedTiles();
     mistakes--;
+    wrongGuessCount++;
+
+    // Track this guess
+    guessedCombos.push(selCats);
+
     trackEvent("guess_wrong", { mistakesRemaining: mistakes });
     renderMistakeDots();
 
@@ -296,6 +371,7 @@ async function handleSubmit() {
       (i) => tiles[i].el && tiles[i].el.classList.remove("selected"),
     );
     selected = [];
+    saveGameState();
 
     if (mistakes <= 0) {
       setTimeout(() => showResultModal(false), 500);
@@ -363,6 +439,92 @@ function renderMistakeDots() {
     dot.className = "mistake-dot" + (i >= mistakes ? " used" : "");
     area.appendChild(dot);
   }
+}
+
+// ===================== HINTS =====================
+function renderHintsRemaining() {
+  const hintsDisplay = document.getElementById("hints-remaining");
+  if (hintsDisplay) {
+    hintsDisplay.textContent = `Hints: ${hintsRemaining} / ${hintsAllowed}`;
+  }
+
+  const hintBtn = document.getElementById("hint-btn");
+  if (hintBtn) {
+    hintBtn.disabled = hintsRemaining <= 0;
+  }
+}
+
+function useHint() {
+  if (hintsRemaining <= 0) {
+    showToast("No hints remaining!");
+    return;
+  }
+
+  // Get list of unsolved categories, excluding the last hinted category if possible
+  const unsolvedCats = puzzle.categories
+    .map((_, idx) => idx)
+    .filter((idx) => !solved.includes(idx));
+
+  if (unsolvedCats.length === 0) {
+    showToast("No unsolved categories!");
+    return;
+  }
+
+  // Filter out last hinted category if we have more options
+  let availableCats = unsolvedCats.filter((idx) => idx !== lastHintedCat);
+  if (availableCats.length === 0) {
+    availableCats = unsolvedCats;
+  }
+
+  // Pick random unsolved category
+  const randCatIdx = Math.floor(Math.random() * availableCats.length);
+  const catIdx = availableCats[randCatIdx];
+  lastHintedCat = catIdx;
+
+  // Get all tiles for this category
+  const tilesForCat = tiles
+    .map((t, idx) => [t, idx])
+    .filter(([t, idx]) => t.catIdx === catIdx)
+    .map(([t, idx]) => idx);
+
+  if (tilesForCat.length < 2) {
+    showToast("Not enough unguessed tiles in that category!");
+    return;
+  }
+
+  // Pick 2 different random tiles from the same category
+  const tileIdx1 = tilesForCat[Math.floor(Math.random() * tilesForCat.length)];
+  const remainingTiles = tilesForCat.filter((idx) => idx !== tileIdx1);
+  const tileIdx2 =
+    remainingTiles[Math.floor(Math.random() * remainingTiles.length)];
+
+  // Highlight the two tiles with category color
+  const randomIndices = [tileIdx1, tileIdx2];
+  const color = COLORS[catIdx];
+
+  randomIndices.forEach((tileIdx) => {
+    const tileEl = tiles[tileIdx].el;
+    if (tileEl) {
+      tileEl.classList.add("hint-outline");
+      tileEl.style.setProperty("--hint-color", color.bg);
+    }
+  });
+
+  // Decrement hints and update display
+  hintsRemaining--;
+  saveHintsState();
+  renderHintsRemaining();
+  trackEvent("hint_used", { hintsRemaining });
+
+  // Remove outline after 3 seconds
+  setTimeout(() => {
+    randomIndices.forEach((tileIdx) => {
+      const tileEl = tiles[tileIdx].el;
+      if (tileEl) {
+        tileEl.classList.remove("hint-outline");
+      }
+    });
+  }, 3000);
 }
 
 // ===================== RESULT MODAL =====================
@@ -525,9 +687,70 @@ function loadHints() {
   }
 }
 
+function loadHintsState() {
+  try {
+    const state = JSON.parse(
+      sessionStorage.getItem("conn_hints_state") || "{}",
+    );
+    if (state.hintsRemaining !== undefined) {
+      hintsRemaining = state.hintsRemaining;
+    } else {
+      hintsRemaining = hintsAllowed;
+    }
+    if (state.lastHintedCat !== undefined) {
+      lastHintedCat = state.lastHintedCat;
+    }
+  } catch {
+    hintsRemaining = hintsAllowed;
+    lastHintedCat = -1;
+  }
+}
+
+function saveHintsState() {
+  try {
+    sessionStorage.setItem(
+      "conn_hints_state",
+      JSON.stringify({ hintsRemaining, lastHintedCat }),
+    );
+  } catch {}
+}
+
 function saveHints() {
   try {
     sessionStorage.setItem("conn_hints", JSON.stringify(hints));
+  } catch {}
+}
+
+function saveGameState() {
+  try {
+    sessionStorage.setItem(
+      "conn_game_state",
+      JSON.stringify({ solved, mistakes, guessedCombos, wrongGuessCount }),
+    );
+  } catch {}
+}
+
+function loadGameState() {
+  try {
+    const state = JSON.parse(sessionStorage.getItem("conn_game_state") || "{}");
+    if (state.solved !== undefined) {
+      solved = state.solved;
+    }
+    if (state.mistakes !== undefined) {
+      mistakes = state.mistakes;
+    }
+    if (state.guessedCombos !== undefined) {
+      guessedCombos = state.guessedCombos;
+    }
+    if (state.wrongGuessCount !== undefined) {
+      wrongGuessCount = state.wrongGuessCount;
+    }
+  } catch {}
+}
+
+function clearGameState() {
+  try {
+    sessionStorage.removeItem("conn_game_state");
   } catch {}
 }
 
@@ -544,11 +767,26 @@ function bindGameButtons() {
     renderGrid();
   });
 
+  document.getElementById("hint-btn").addEventListener("click", useHint);
+
   document.getElementById("deselect-btn").addEventListener("click", () => {
-    selected.forEach(
-      (i) => tiles[i].el && tiles[i].el.classList.remove("selected"),
-    );
+    selected.forEach((i) => {
+      if (tiles[i].el) {
+        tiles[i].el.classList.remove("selected");
+        tiles[i].el.classList.remove("duplicate-guess");
+      }
+    });
     selected = [];
+    isDuplicateSelection = false;
+    updateDuplicateHighlight();
+  });
+
+  document.getElementById("reset-btn").addEventListener("click", () => {
+    buildGame(true, true);
+    renderGrid();
+    renderMistakeDots();
+    renderHintsRemaining();
+    showToast("Game reset!");
   });
 
   document.getElementById("how-to-btn").addEventListener("click", () => {
@@ -572,7 +810,7 @@ function bindGameButtons() {
     .getElementById("result-play-again-btn")
     .addEventListener("click", () => {
       closeModal("result-modal");
-      buildGame();
+      buildGame(true);
     });
 }
 
@@ -727,10 +965,16 @@ function generateEmojiResult() {
   const used = total - mistakes;
   const emojiLines = [];
 
-  puzzle.categories.forEach((cat, ci) => {
-    const color = COLORS[ci];
+  // Add mistakes line if there were any mistakes
+  if (wrongGuessCount > 0) {
+    emojiLines.push("⬜".repeat(wrongGuessCount));
+  }
+
+  // Add one emoji per solved category (in order they were solved)
+  solved.forEach((catIdx) => {
+    const color = COLORS[catIdx];
     const emoji = EMOJI_MAP[color.key] || "⬜";
-    emojiLines.push(emoji.repeat(puzzle.categories[0].words.length));
+    emojiLines.push(emoji);
   });
 
   const emojiStr = emojiLines.join("\n");
@@ -820,5 +1064,3 @@ function escapeHtml(text) {
   div.textContent = text;
   return div.innerHTML;
 }
-
-
